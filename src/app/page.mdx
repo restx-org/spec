@@ -1,0 +1,2202 @@
+# APIx Language Specification
+
+**Version 1.0.0**
+
+## Abstract
+
+This document defines APIx, a declarative domain-specific language (DSL) for specifying backend REST APIs. APIx provides a concise, human-readable syntax that compiles to production-ready backend services, OpenAPI specifications, and database migrations.
+
+## Status of This Document
+
+This is a draft specification. Feedback is welcome via the [GitHub repository](https://github.com/apix-org/spec).
+
+---
+
+<h2 id="introduction">1. Introduction</h2>
+
+### 1.1 Purpose
+
+APIx is a declarative domain-specific language designed to reduce the verbosity of API specifications while maintaining expressiveness. An APIx document describes the complete structure of a backend API, including types, database schema, routes, authentication, and integrations.
+
+### 1.2 Goals
+
+- **Conciseness**: Achieve approximately 90% reduction in specification verbosity compared to traditional frameworks
+- **Readability**: Enable understanding of an API structure at a glance
+- **Type Safety**: Provide strong typing with automatic validation
+- **Implementation Agnosticism**: Support compilation to any backend technology
+- **AI Optimization**: Optimize for AI code generation through low token count and clear structure
+
+### 1.3 Scope
+
+This specification defines:
+- The syntax and semantics of the APIx language
+- The type system and validation rules
+- Database schema definition
+- Route and endpoint declaration
+- Flow operations for request handling
+- Authentication and authorization mechanisms
+
+This specification does not define:
+- Implementation details of compilers or runtimes
+- Specific backend technology mappings
+- Network protocols or deployment configurations
+
+---
+
+<h2 id="notational-conventions">2. Notational Conventions</h2>
+
+### 2.1 Requirement Levels
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+
+### 2.2 Syntax Notation
+
+This specification uses Extended Backus-Naur Form (EBNF) notation for grammar definitions. The following conventions apply:
+
+| Notation | Meaning |
+|----------|---------|
+| `=` | Definition |
+| `,` | Concatenation |
+| `\|` | Alternation |
+| `[ ]` | Optional |
+| `{ }` | Repetition (zero or more) |
+| `( )` | Grouping |
+| `" "` | Terminal string |
+
+### 2.3 Data Type Notation
+
+Throughout this specification:
+- Type names in `PascalCase` refer to user-defined or built-in complex types
+- Type names in `lowercase` refer to primitive types
+- The `?` suffix indicates a nullable type
+- The `[]` suffix indicates an array type
+- The `!` suffix indicates a required field
+
+---
+
+<h2 id="design-philosophy">3. Design Philosophy</h2>
+
+### 3.1 Declarative Over Imperative
+
+APIx adopts a declarative paradigm where developers specify *what* the API should do rather than *how* to implement it. Implementations MUST interpret declarations and generate appropriate runtime behavior.
+
+```apix
+# Declarative specification
+GET /users?page:int=1&limit:int=10 -> Paginated<User>
+  flow: {
+    users -> db.users.paginate(page, limit)
+    return -> users
+  }
+```
+
+The implementation handles pagination details including offset calculation, total count computation, and Link header generation.
+
+### 3.2 Convention Over Configuration
+
+Common patterns SHOULD have implicit sensible defaults. Implementations MUST apply these conventions unless explicitly overridden:
+
+| Convention | Default Behavior |
+|------------|------------------|
+| Content Type | `application/json` |
+| GET Response | Status code 200 |
+| POST Response | Status code 201 |
+| DELETE Response | Status code 204 |
+| Path Parameters | Always required |
+| Query Parameters | Optional unless marked with `!` |
+| Multiple DB Operations | Automatic transaction wrapping |
+| `deleted_at` Column | Soft delete behavior enabled |
+| `created_at` Column | Auto-set on INSERT |
+| `updated_at` Column | Auto-updated on UPDATE |
+
+### 3.3 Progressive Disclosure
+
+Simple use cases SHOULD require minimal syntax. Complex requirements SHOULD be achievable through additive syntax without restructuring.
+
+### 3.4 Type Safety
+
+Implementations MUST perform type checking at compile time. Runtime type errors from validated input MUST NOT occur.
+
+---
+
+<h2 id="document-structure">4. Document Structure</h2>
+
+### 4.1 File Format
+
+An APIx document MUST be encoded in UTF-8. The file extension SHOULD be `.apix`.
+
+### 4.2 Document Sections
+
+An APIx document consists of the following sections, which SHOULD appear in this order:
+
+1. **Metadata** (REQUIRED) - API declaration, description, server URL
+2. **Error Schema** (OPTIONAL) - Global error response structure
+3. **Environment Configuration** (REQUIRED) - Environment-specific values
+4. **Type Definitions** (OPTIONAL) - Custom type declarations
+5. **Database Schema** (OPTIONAL) - Table definitions
+6. **Integrations** (OPTIONAL) - External API configurations
+7. **Webhooks** (OPTIONAL) - Outbound event definitions
+8. **Hooks** (OPTIONAL) - Middleware definitions
+9. **Scheduled Tasks** (OPTIONAL) - Cron-like task definitions
+10. **Routes** (OPTIONAL) - API endpoint definitions
+
+### 4.3 Basic Syntax Rules
+
+1. APIx is case-sensitive
+2. Indentation MUST use 2 spaces; tabs are not permitted
+3. Comments begin with `#` and extend to end of line
+4. String literals MUST use double quotes (`"string"`)
+5. Blocks are delimited by curly braces (`{ }`)
+6. The arrow operator (`->`) denotes assignment in flows
+
+### 4.4 Naming Conventions
+
+Implementations SHOULD enforce these naming conventions:
+
+| Element | Convention | Example |
+|---------|------------|---------|
+| Types | PascalCase | `User`, `OrderItem` |
+| Fields | camelCase | `userId`, `createdAt` |
+| Tables | snake_case | `users`, `order_items` |
+| Routes | kebab-case | `/users`, `/order-items` |
+| Enums | lowercase | `active\|inactive` |
+
+---
+
+<h2 id="syntax-reference">5. Syntax Reference</h2>
+
+### 5.1 Metadata
+
+Every APIx document MUST begin with metadata declarations.
+
+#### 5.1.1 API Declaration
+
+```ebnf
+api_declaration = "api", string_literal, "v", version ;
+version = digit, { digit | "." } ;
+```
+
+The API declaration MUST include a title and version number.
+
+```apix
+api "Shop API" v1.0.0
+```
+
+#### 5.1.2 Description
+
+```ebnf
+description = "desc", string_literal ;
+```
+
+The description is OPTIONAL and provides a human-readable summary.
+
+```apix
+desc "E-commerce REST API for managing products and orders"
+```
+
+#### 5.1.3 Server Declaration
+
+```ebnf
+server_declaration = "server", url ;
+```
+
+At least one server URL MUST be declared.
+
+```apix
+server https://api.example.com
+```
+
+### 5.2 Comments
+
+```ebnf
+comment = "#", { any_character }, newline ;
+```
+
+Comments begin with `#` and continue to the end of the line. Multi-line comments require multiple `#` prefixes.
+
+```apix
+# This is a comment
+# This is another comment
+```
+
+---
+
+<h2 id="type-system">6. Type System</h2>
+
+### 6.1 Overview
+
+The APIx type system provides strong static typing with support for primitive types, complex types, generics, and type constraints.
+
+<h3 id="primitive-types">6.2 Primitive Types</h3>
+
+Implementations MUST support the following primitive types:
+
+| Type | Description | Format | Example |
+|------|-------------|--------|---------|
+| `str` | Unicode string | — | `"hello"` |
+| `int` | 32-bit signed integer | int32 | `42` |
+| `long` | 64-bit signed integer | int64 | `9007199254740991` |
+| `float` | 32-bit floating point | float | `3.14` |
+| `double` | 64-bit floating point | double | `3.14159265359` |
+| `bool` | Boolean value | — | `true`, `false` |
+| `date` | Calendar date | ISO 8601 | `"2024-01-15"` |
+| `datetime` | Date and time | ISO 8601 | `"2024-01-15T10:30:00Z"` |
+| `time` | Time of day | ISO 8601 | `"10:30:00"` |
+| `email` | Email address | RFC 5322 | `"user@example.com"` |
+| `uri` | URI reference | RFC 3986 | `"https://example.com"` |
+| `url` | URL | RFC 3986 | `"https://example.com/path"` |
+| `uuid` | UUID | RFC 4122 | `"123e4567-e89b-..."` |
+| `binary` | Binary data | Base64 | — |
+| `byte` | Base64-encoded bytes | Base64 | — |
+| `secret` | Sensitive data | — | — |
+| `any` | Any JSON value | JSON | `{}` |
+
+<h3 id="type-modifiers">6.3 Type Modifiers</h3>
+
+#### 6.3.1 Required Modifier
+
+The `!` suffix on a field name indicates the field is REQUIRED in request payloads.
+
+```apix
+email!: email  # Field MUST be present
+```
+
+#### 6.3.2 Nullable Modifier
+
+The `?` suffix on a type indicates the value MAY be `null`.
+
+```apix
+age: int?  # Value MAY be null
+```
+
+#### 6.3.3 Array Modifier
+
+The `[]` suffix indicates an array of the specified type.
+
+```apix
+tags: str[]  # Array of strings
+```
+
+#### 6.3.4 Default Values
+
+The `=` operator specifies a default value applied when the field is absent.
+
+```apix
+status: active|inactive=active  # Defaults to "active"
+```
+
+#### 6.3.5 Modifier Combinations
+
+Modifiers MAY be combined. The order is: `type`, `[]`, `?`.
+
+```apix
+optionalTags: str[]?  # Nullable array of strings
+```
+
+<h3 id="complex-types">6.4 Complex Types</h3>
+
+#### 6.4.1 Enumeration Types
+
+Enumerations define a set of allowed values.
+
+```ebnf
+enum_type = enum_value, { "|", enum_value } ;
+enum_value = identifier | integer | string_literal ;
+```
+
+```apix
+status: active|inactive|pending
+priority: 1|2|3|4|5
+```
+
+#### 6.4.2 Inline Object Types
+
+Anonymous object types MAY be defined inline.
+
+```apix
+{
+  name!: str
+  age: int
+  email!: email
+}
+```
+
+#### 6.4.3 Map Types
+
+Map types represent key-value collections where keys are strings.
+
+```apix
+metadata: map[str]     # Map with string values
+prices: map[float]     # Map with float values
+settings: map[any]     # Map with any JSON values
+```
+
+<h3 id="generic-types">6.5 Generic Types</h3>
+
+#### 6.5.1 Built-in Generic Types
+
+Implementations MUST provide the `Paginated<T>` generic type:
+
+```apix
+type Paginated<T> {
+  data!: T[]
+  page!: int
+  limit!: int
+  total!: int
+  hasNext!: bool
+  hasPrev!: bool
+}
+```
+
+#### 6.5.2 User-Defined Generic Types
+
+Users MAY define custom generic types using angle bracket notation:
+
+```apix
+type ApiResponse<T> {
+  success!: bool
+  data: T
+  error: str
+  timestamp!: datetime
+}
+```
+
+Generic type parameters MUST be single uppercase letters or PascalCase identifiers.
+
+<h3 id="type-definitions">6.6 Type Definitions</h3>
+
+```ebnf
+type_def = "type", identifier, [ "<", type_params, ">" ], "{", { field_def }, "}" ;
+field_def = identifier, [ "!" ], ":", type_expr, [ "=", default_value ], { annotation } ;
+```
+
+```apix
+type User {
+  id!: uuid
+  email!: email @unique(db.users.email) @max(255)
+  username!: str @min(3) @max(20)
+  password!: secret @min(8)
+  role: admin|user|guest=user
+  createdAt!: datetime
+  updatedAt: datetime
+}
+```
+
+### 6.7 The `secret` Type
+
+The `secret` type has special semantics for handling sensitive data:
+
+- Implementations MUST accept `secret` values in request bodies
+- Implementations MUST make `secret` values available within flows
+- Implementations MUST NOT include `secret` fields in response bodies
+- Implementations MUST NOT log `secret` values
+- Implementations MUST NOT cache `secret` values
+
+When a type containing `secret` fields is used as a response type, implementations MUST automatically strip those fields from the response.
+
+### 6.8 Type Constraints
+
+Type constraints are specified using annotations on fields.
+
+| Annotation | Applies To | Description |
+|------------|-----------|-------------|
+| `@min(n)` | `str`, `int`, `float`, `[]` | Minimum length or value |
+| `@max(n)` | `str`, `int`, `float`, `[]` | Maximum length or value |
+| `@pattern(regex)` | `str` | Regular expression pattern |
+| `@unique(table.column)` | Any | Unique constraint against database |
+| `@exists(table.column)` | Any | Foreign key validation |
+
+```apix
+type Product {
+  name!: str @min(1) @max(200)
+  price!: float @min(0) @max(999999.99)
+  sku!: str @pattern("^[A-Z]{3}-\\d{4}$") @unique(db.products.sku)
+  categoryId!: uuid @exists(db.categories.id)
+}
+```
+
+---
+
+<h2 id="database-schema">7. Database Schema</h2>
+
+<h3 id="table-definitions">7.1 Table Definitions</h3>
+
+```ebnf
+table_def = "table", identifier, "{", { column_def | index_def | relationship_def }, "}" ;
+```
+
+```apix
+table users {
+  id: uuid primary
+  email: varchar(255) unique not null
+  created_at: timestamp not null
+}
+```
+
+<h3 id="column-types">7.2 Column Types</h3>
+
+Implementations SHOULD map APIx column types to appropriate database-specific types:
+
+| APIx Type | Suggested SQL Type |
+|-----------|-------------------|
+| `uuid` | `UUID` or `CHAR(36)` |
+| `varchar(n)` | `VARCHAR(n)` |
+| `text` | `TEXT` |
+| `integer` | `INTEGER` |
+| `bigint` | `BIGINT` |
+| `real` | `REAL` |
+| `double precision` | `DOUBLE PRECISION` |
+| `boolean` | `BOOLEAN` |
+| `date` | `DATE` |
+| `timestamp` | `TIMESTAMP WITH TIME ZONE` |
+| `time` | `TIME` |
+| `bytea` | `BYTEA` or `BLOB` |
+| `jsonb` | `JSONB` or `JSON` |
+| `decimal(p,s)` | `DECIMAL(p,s)` |
+
+<h3 id="constraints">7.3 Constraints</h3>
+
+```ebnf
+constraint = "primary" | "unique" | "not null" | "null" | "index"
+           | "default", "(", value, ")"
+           | "foreign", "(", table_ref, ")" ;
+```
+
+| Constraint | Description |
+|------------|-------------|
+| `primary` | Primary key |
+| `unique` | Unique constraint |
+| `not null` | Non-nullable |
+| `null` | Explicitly nullable |
+| `index` | Create index |
+| `default(value)` | Default value |
+| `foreign(table.column)` | Foreign key reference |
+
+Multiple constraints MAY be applied to a single column:
+
+```apix
+email: varchar(255) unique not null index
+```
+
+### 7.4 Composite Indexes
+
+```apix
+table orders {
+  id: uuid primary
+  user_id: uuid foreign(users.id)
+  status: varchar(50)
+  created_at: timestamp
+
+  index: [user_id, status]
+  index: [created_at, status]
+}
+```
+
+<h3 id="relationships">7.5 Relationships</h3>
+
+```ebnf
+relationship_def = identifier, ":", relationship_type, "(", table_ref, ")" ;
+relationship_type = "belongsTo" | "hasMany" | "hasOne" ;
+```
+
+| Relationship | Cardinality | Description |
+|--------------|-------------|-------------|
+| `belongsTo(table.column)` | Many-to-One | This record belongs to another |
+| `hasMany(table.column)` | One-to-Many | This record has many related records |
+| `hasOne(table.column)` | One-to-One | This record has one related record |
+
+```apix
+table users {
+  id: uuid primary
+  orders: hasMany(orders.user_id)
+}
+
+table orders {
+  id: uuid primary
+  user_id: uuid foreign(users.id)
+  user: belongsTo(users.id)
+}
+```
+
+### 7.6 Soft Delete Convention
+
+If a table contains a `deleted_at` column of type `timestamp`, implementations MUST enable soft delete behavior:
+
+- `DELETE` operations MUST set `deleted_at` to the current timestamp
+- Query operations MUST exclude records where `deleted_at IS NOT NULL` by default
+- The `.withDeleted()` modifier MUST include soft-deleted records
+- The `.onlyDeleted()` modifier MUST return only soft-deleted records
+- The `.forceDelete()` operation MUST permanently remove the record
+
+### 7.7 Timestamp Conventions
+
+If a table contains `created_at` or `updated_at` columns:
+
+- `created_at` MUST be automatically set to the current timestamp on INSERT
+- `updated_at` MUST be automatically set to the current timestamp on UPDATE
+
+---
+
+<h2 id="query-builder">8. Query Builder</h2>
+
+This section defines the semantics of database query operations used within flows.
+
+<h3 id="query-operations">8.1 Query Operations</h3>
+
+#### 8.1.1 Basic Retrieval
+
+| Operation | Syntax | Description |
+|-----------|--------|-------------|
+| Find by ID | `db.table.findById(id)` | Retrieve single record by primary key |
+| Find all | `db.table.all()` | Retrieve all records |
+| Find first | `db.table.first()` | Retrieve first matching record |
+| Find one | `db.table.where(...).first()` | Retrieve first record matching criteria |
+
+```apix
+user -> db.users.findById(id)
+users -> db.users.all()
+admin -> db.users.where(role = "admin").first()
+```
+
+#### 8.1.2 Filtering with `where`
+
+The `where` operation filters records based on conditions.
+
+```ebnf
+where_clause = "where", "(", condition, { ",", condition }, ")" ;
+condition = field_name, operator, value ;
+operator = "=" | "!=" | ">" | "<" | ">=" | "<=" | "like" | "in" ;
+```
+
+Multiple conditions in a single `where` call are combined with AND:
+
+```apix
+orders -> db.orders.where(user_id = userId, status = "paid")
+```
+
+Multiple `where` calls are also combined with AND:
+
+```apix
+products -> db.products
+  .where(category = category)
+  .where(price >= minPrice)
+  .where(in_stock = true)
+```
+
+#### 8.1.3 Sorting
+
+```apix
+users -> db.users.orderBy(created_at, desc)
+users -> db.users.orderBy(name, asc)
+```
+
+The second parameter MUST be either `asc` or `desc`. If omitted, implementations SHOULD default to `asc`.
+
+#### 8.1.4 Limiting Results
+
+```apix
+recent -> db.orders.limit(10)
+page -> db.users.offset(20).limit(10)
+```
+
+#### 8.1.5 Pagination
+
+```apix
+users -> db.users.paginate(page, limit)
+```
+
+The `paginate` operation MUST return a `Paginated<T>` structure containing:
+- `data`: Array of records for the current page
+- `page`: Current page number (1-indexed)
+- `limit`: Records per page
+- `total`: Total record count
+- `hasNext`: Boolean indicating more pages exist
+- `hasPrev`: Boolean indicating previous pages exist
+
+<h3 id="filter-expressions">8.2 Filter Expressions</h3>
+
+#### 8.2.1 Comparison Operators
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `=` | Equal | `status = "active"` |
+| `!=` | Not equal | `role != "guest"` |
+| `>` | Greater than | `price > 100` |
+| `<` | Less than | `age < 18` |
+| `>=` | Greater than or equal | `quantity >= 1` |
+| `<=` | Less than or equal | `rating <= 5` |
+| `like` | Pattern match | `name like "%smith%"` |
+| `in` | In set | `status in ["active", "pending"]` |
+
+#### 8.2.2 Null Checks
+
+```apix
+active -> db.users.where(deleted_at = null)
+deleted -> db.users.where(deleted_at != null)
+```
+
+#### 8.2.3 Date Comparisons
+
+```apix
+recent -> db.orders.where(created_at > daysAgo(7))
+today -> db.logs.where(timestamp >= today())
+```
+
+<h3 id="aggregations">8.3 Aggregations</h3>
+
+| Operation | Syntax | Return Type |
+|-----------|--------|-------------|
+| Count | `db.table.count()` | `int` |
+| Sum | `db.table.sum(column)` | `float` |
+| Average | `db.table.average(column)` | `float` |
+| Minimum | `db.table.min(column)` | Column type |
+| Maximum | `db.table.max(column)` | Column type |
+
+```apix
+total -> db.orders.where(user_id = userId).sum(amount)
+count -> db.users.where(active = true).count()
+avgPrice -> db.products.average(price)
+```
+
+### 8.4 Mutations
+
+#### 8.4.1 Create
+
+```apix
+user -> db.users.create({ email, name, role: "user" })
+```
+
+The `create` operation MUST:
+- Insert a new record with the provided values
+- Apply default values for unspecified columns
+- Set `created_at` if the column exists
+- Return the created record including generated values
+
+#### 8.4.2 Update
+
+```apix
+user -> db.users.update(id, { name, updated_at: now() })
+```
+
+The `update` operation MUST:
+- Update the record matching the primary key
+- Set `updated_at` if the column exists and not explicitly provided
+- Return the updated record
+
+#### 8.4.3 Delete
+
+```apix
+db.users.delete(id)
+```
+
+The `delete` operation MUST:
+- If soft delete is enabled: Set `deleted_at` to current timestamp
+- If soft delete is not enabled: Permanently remove the record
+
+#### 8.4.4 Force Delete
+
+```apix
+db.users.forceDelete(id)
+```
+
+Permanently removes the record regardless of soft delete configuration.
+
+### 8.5 Relationship Loading
+
+#### 8.5.1 Include (Eager Loading)
+
+```apix
+user -> db.users.findById(id).include(orders)
+user -> db.users.findById(id).include(orders, payments)
+```
+
+The `include` operation loads related records in a single query or optimized batch query.
+
+#### 8.5.2 Join
+
+```apix
+data -> db.orders.where(user_id = userId).join(user)
+```
+
+The `join` operation performs a database join and returns combined data.
+
+### 8.6 Raw Queries
+
+For complex queries not expressible in the query builder, raw SQL MAY be used:
+
+```apix
+stats -> db.query(`
+  SELECT DATE(created_at) as date, COUNT(*) as count
+  FROM orders
+  WHERE user_id = $1
+  GROUP BY DATE(created_at)
+`, [userId])
+```
+
+Implementations MUST use parameterized queries to prevent SQL injection.
+
+---
+
+<h2 id="routes-endpoints">9. Routes & Endpoints</h2>
+
+<h3 id="route-syntax">9.1 Route Syntax</h3>
+
+```ebnf
+route = { annotation }, http_method, path, [ query_params ], "->", response_type,
+        [ string_literal ], { route_option }, "flow", ":", flow_block ;
+```
+
+```apix
+GET /users/:id -> User|404
+  auth: bearer
+  flow: {
+    user -> db.users.findById(id)
+    if user == null:
+      return -> 404:{ message: "User not found" }
+    return -> user
+  }
+```
+
+### 9.2 HTTP Methods
+
+| Method | Default Status | Semantics |
+|--------|----------------|-----------|
+| `GET` | 200 | Retrieve resource(s) |
+| `POST` | 201 | Create resource |
+| `PUT` | 200 | Replace resource |
+| `PATCH` | 200 | Partial update |
+| `DELETE` | 204 | Remove resource |
+| `HEAD` | 200 | Headers only |
+| `OPTIONS` | 200 | CORS preflight |
+
+<h3 id="parameters">9.3 Parameters</h3>
+
+#### 9.3.1 Path Parameters
+
+Path parameters are denoted with `:` or `{}` prefix and are always REQUIRED.
+
+```apix
+GET /users/:id -> User
+GET /users/{id} -> User
+GET /orgs/:orgId/users/:userId -> User
+```
+
+Path parameters are directly available in the flow scope by their name.
+
+#### 9.3.2 Query Parameters
+
+Query parameters are declared after `?` and are OPTIONAL by default.
+
+```apix
+GET /users?page:int=1&limit:int=10 -> User[]
+GET /search?q:str! -> Results  # Required query param
+```
+
+For routes with many query parameters, block syntax MAY be used:
+
+```apix
+GET /users -> User[]
+  query: {
+    page: int=1,
+    limit: int=10,
+    role: str,
+    active: bool
+  }
+```
+
+#### 9.3.3 Parameter Name Collision Resolution
+
+When path parameters, query parameters, or body fields share the same name, implementations MUST resolve collisions using this precedence (highest to lowest):
+
+1. Path parameters
+2. Body fields
+3. Query parameters
+
+Implementations SHOULD emit a warning at compile time when collisions are detected.
+
+<h3 id="request-body">9.4 Request Body</h3>
+
+```ebnf
+body_option = "body", [ "!" ], ":", ( type_ref | inline_object ) ;
+body_option = "body", [ "!" ], inline_object ;
+```
+
+#### 9.4.1 Required vs Optional Body
+
+- `body!` or `body! { ... }`: Request body is REQUIRED; requests without a body MUST be rejected with 400
+- `body` or `body { ... }`: Request body is OPTIONAL
+
+```apix
+# Required body with inline schema
+POST /users -> 201:User
+  body! {
+    email!: email
+    name!: str
+    age: int
+  }
+
+# Required body referencing type
+POST /users -> 201:User
+  body!: CreateUserRequest
+
+# Optional body
+PATCH /users/:id -> User
+  body {
+    name: str
+    age: int
+  }
+```
+
+Body fields are directly available in the flow scope.
+
+### 9.5 Request Headers
+
+```apix
+GET /data -> Data
+  headers: {
+    X-API-Key!: str,
+    X-Request-ID: uuid
+  }
+```
+
+Headers are available in flows via the `$headers` variable.
+
+<h3 id="response-types">9.6 Response Types</h3>
+
+#### 9.6.1 Simple Response
+
+```apix
+GET /users -> User[]
+```
+
+Implies status code 200 with response body of type `User[]`.
+
+#### 9.6.2 Explicit Status Code
+
+```apix
+POST /users -> 201:User
+DELETE /users/:id -> 204
+```
+
+#### 9.6.3 Multiple Response Types
+
+```apix
+GET /users/:id -> User|404|403
+GET /users/:id -> User|404:NotFoundError|403:ForbiddenError
+```
+
+The `|` operator specifies alternative response types. Implementations MUST validate that flows return only declared response types.
+
+#### 9.6.4 Inline Response Types
+
+```apix
+GET /health -> { status: str, timestamp: datetime }
+```
+
+---
+
+<h2 id="flow-operations">10. Flow Operations</h2>
+
+Flows define the request handling logic using a declarative pipeline syntax.
+
+### 10.1 Flow Structure
+
+```ebnf
+flow_block = "{", { flow_statement }, "}" ;
+flow_statement = assignment | conditional | match | try_catch
+               | return_stmt | loop | async_op ;
+```
+
+<h3 id="assignments">10.2 Assignments</h3>
+
+```ebnf
+assignment = [ { annotation } ], identifier, "->", expression ;
+```
+
+```apix
+user -> db.users.findById(id)
+fullName -> user.firstName + " " + user.lastName
+hash -> bcrypt(password)
+```
+
+<h3 id="conditionals">10.3 Conditionals</h3>
+
+```ebnf
+conditional = "if", expression, ":", block, [ "else", ":", block ] ;
+```
+
+```apix
+if user == null:
+  return -> 404:{ message: "Not found" }
+
+if user.active:
+  return -> user
+else:
+  return -> 403:{ message: "User inactive" }
+```
+
+<h3 id="pattern-matching">10.4 Pattern Matching</h3>
+
+```ebnf
+match = "match", expression, ":", { match_case } ;
+match_case = pattern, "->", ( block | statement ) ;
+pattern = literal | identifier | "_" | pattern, "|", pattern ;
+```
+
+```apix
+match charge.status:
+  "success" -> {
+    order -> db.orders.create({ payment_id: charge.id })
+    return -> order
+  }
+  "insufficient_funds" | "card_declined" -> return -> 402:PaymentFailed
+  _ -> return -> 500:PaymentError
+```
+
+The `_` pattern matches any value and MUST appear last if present.
+
+<h3 id="transactions">10.5 Transactions</h3>
+
+#### 10.5.1 Implicit Transactions
+
+When a flow contains multiple database mutation operations, implementations MUST wrap them in a transaction by default.
+
+```apix
+flow: {
+  db.accounts.update(fromId, { balance: balance - amount })
+  db.accounts.update(toId, { balance: balance + amount })
+  transfer -> db.transfers.create({ from: fromId, to: toId, amount })
+  return -> transfer
+}
+```
+
+All three operations execute within a single transaction. If any operation fails, all changes are rolled back.
+
+#### 10.5.2 Explicit Transaction Block
+
+```apix
+transaction {
+  db.accounts.update(fromId, { balance: balance - amount })
+  db.accounts.update(toId, { balance: balance + amount })
+}
+```
+
+#### 10.5.3 Excluding Operations from Transactions
+
+Operations that SHOULD NOT be rolled back (e.g., audit logs) can be excluded:
+
+```apix
+notransaction {
+  db.audit_logs.create({ action: "transfer", user_id: $auth.userId })
+}
+
+# Or single operation
+notransaction log -> db.audit_logs.create({ ... })
+```
+
+#### 10.5.4 Transaction Isolation
+
+Implementations SHOULD use the database's default isolation level. If a specific isolation level is required, implementations MAY provide configuration options outside the APIx specification.
+
+#### 10.5.5 Read Operations in Transactions
+
+Read operations (`findById`, `where`, `all`, etc.) SHOULD participate in the active transaction to ensure consistency, but implementations MAY optimize read-only flows to skip transaction overhead.
+
+### 10.6 Asynchronous Operations
+
+```apix
+async send -> email.welcome(user.email)
+queue -> processPayment(order.id)
+```
+
+Operations marked `async` MUST NOT block the response. The `queue` operation schedules work for background processing.
+
+### 10.7 Return Statement
+
+```apix
+return -> user
+return -> 201:user
+return -> 404:{ message: "Not found" }
+```
+
+Every flow MUST terminate with a `return` statement that matches one of the declared response types.
+
+### 10.8 Transformations
+
+```apix
+transform -> user {
+  fullName: user.firstName + " " + user.lastName
+  isActive: user.lastLoginAt > daysAgo(30)
+}
+```
+
+---
+
+<h2 id="authentication-authorization">11. Authentication & Authorization</h2>
+
+### 11.1 Authentication Types
+
+```apix
+auth: bearer        # JWT Bearer token
+auth: basic         # HTTP Basic authentication
+auth: apikey        # API key in header (default)
+auth: apikey(query) # API key in query parameter
+auth: apikey(cookie)# API key in cookie
+auth: oauth2        # OAuth 2.0
+auth: none          # Explicitly no authentication
+```
+
+### 11.2 Global Authentication
+
+```apix
+api "API Name" v1.0.0
+  auth: bearer
+```
+
+When specified at the API level, all routes inherit this authentication. Individual routes MAY override with `auth: none`.
+
+### 11.3 Authorization
+
+Authorization determines whether an authenticated user may access a specific endpoint.
+
+```apix
+GET /admin/stats -> Stats
+  auth: bearer
+  authorize: $auth.role == "admin"
+```
+
+The `authorize` expression is evaluated BEFORE the flow executes. If authorization fails, implementations MUST return 403 Forbidden without executing the flow.
+
+### 11.4 Resource-Based Authorization
+
+When authorization depends on the resource being accessed, checks MUST be performed within the flow:
+
+```apix
+GET /orders/:orderId -> Order
+  auth: bearer
+  flow: {
+    order -> db.orders.findById(orderId)
+
+    if order == null:
+      return -> 404:{ message: "Order not found" }
+
+    if order.userId != $auth.userId && $auth.role != "admin":
+      return -> 403:{ message: "Access denied" }
+
+    return -> order
+  }
+```
+
+### 11.5 Magic Variables
+
+These variables are available in flows and authorization expressions:
+
+| Variable | Scope | Description |
+|----------|-------|-------------|
+| `$auth` | Authenticated routes | Authenticated user context |
+| `$auth.userId` | Authenticated routes | User's unique identifier |
+| `$auth.role` | Authenticated routes | User's role |
+| `$auth.email` | Authenticated routes | User's email |
+| `$auth.permissions` | Authenticated routes | Array of permissions |
+| `$headers` | All routes | Request headers object |
+| `$request` | All routes | Request metadata |
+| `$request.method` | All routes | HTTP method |
+| `$request.path` | All routes | Request path |
+| `$request.ip` | All routes | Client IP address |
+| `$env` | All routes | Environment configuration |
+| `$env.name` | All routes | Current environment name |
+
+---
+
+<h2 id="integrations">12. Integrations</h2>
+
+Integrations define configured HTTP clients for external APIs. An integration specifies connection details only; types and business logic remain in the document and flows respectively.
+
+### 12.1 Integration Definition
+
+```ebnf
+integration_def = "integration", identifier, "{", { integration_option }, "}" ;
+integration_option = identifier, ":", value ;
+```
+
+An integration MUST specify at minimum a `baseUrl`. Authentication and other options are OPTIONAL.
+
+```apix
+integration stripe {
+  baseUrl: "https://api.stripe.com"
+  auth: bearer($env.stripe.apiKey)
+}
+
+integration github {
+  baseUrl: "https://api.github.com"
+  auth: bearer($env.github.token)
+  timeout: 60s
+}
+
+integration internal {
+  baseUrl: "http://internal-service:8080"
+}
+```
+
+### 12.2 Configuration Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `baseUrl` | `url` | REQUIRED. Base URL for all requests |
+| `auth` | Auth config | Authentication configuration |
+| `timeout` | Duration | Request timeout (default: 30s) |
+| `retries` | `int` | Number of retry attempts (default: 0) |
+| `headers` | `map[str]` | Default headers for all requests |
+
+### 12.3 Authentication Options
+
+```apix
+# Bearer token
+auth: bearer($env.token)
+
+# API key in header
+auth: apikey(header: "X-API-Key", value: $env.apiKey)
+
+# API key in query parameter
+auth: apikey(query: "api_key", value: $env.apiKey)
+
+# Basic authentication
+auth: basic(username: $env.user, password: $env.pass)
+
+# OAuth 2.0 client credentials
+auth: oauth2(
+  clientId: $env.clientId,
+  clientSecret: $env.clientSecret,
+  tokenUrl: "https://auth.example.com/token"
+)
+
+# Custom headers
+auth: custom(headers: {
+  "X-Custom-Auth": $env.customToken,
+  "X-Tenant-ID": $env.tenantId
+})
+```
+
+### 12.4 Usage in Flows
+
+Integrations are accessed via `$integrationName` and expose standard HTTP methods: `.get()`, `.post()`, `.put()`, `.patch()`, `.delete()`.
+
+#### Syntax
+
+```ebnf
+integration_call = "$", identifier, ".", http_method, "(", path, [ ",", body ], ")", "->", type_expr ;
+http_method = "get" | "post" | "put" | "patch" | "delete" ;
+```
+
+The type annotation (`-> Type`) specifies the expected response shape and enables compile-time validation.
+
+#### Examples
+
+```apix
+# Define types at document level
+type Charge {
+  id!: str
+  amount!: int
+  currency!: str
+  status!: succeeded|pending|failed
+}
+
+type ChargeError {
+  code!: str
+  message!: str
+}
+
+type Customer {
+  id!: str
+  email!: email
+  name: str
+}
+
+# Use in flows
+POST /orders/:id/pay -> Order|402
+  auth: bearer
+  flow: {
+    order -> db.orders.findById(id)
+
+    # POST request with body, expecting Charge or ChargeError
+    charge -> $stripe.post("/v1/charges", {
+      amount: order.total,
+      currency: "usd"
+    }) -> Charge|ChargeError
+
+    match charge:
+      Charge -> {
+        order -> db.orders.update(id, { paymentId: charge.id, status: "paid" })
+        return -> order
+      }
+      ChargeError -> return -> 402:{ message: charge.message }
+  }
+
+GET /repos/:owner/:repo -> Repository|404
+  auth: bearer
+  flow: {
+    # GET request with path parameters
+    repo -> $github.get("/repos/{owner}/{repo}") -> Repository|404
+    return -> repo
+  }
+
+DELETE /customers/:id -> 204|404
+  auth: bearer
+  flow: {
+    # DELETE request
+    $stripe.delete("/v1/customers/{id}") -> 204|404
+    return -> 204
+  }
+```
+
+#### HTTP Methods
+
+| Method | Syntax | Description |
+|--------|--------|-------------|
+| GET | `$api.get(path) -> Type` | Retrieve resource |
+| POST | `$api.post(path, body) -> Type` | Create resource |
+| PUT | `$api.put(path, body) -> Type` | Replace resource |
+| PATCH | `$api.patch(path, body) -> Type` | Update resource |
+| DELETE | `$api.delete(path) -> Type` | Delete resource |
+
+#### Path Parameters
+
+Path parameters in integration calls use the same `{param}` syntax and are resolved from the flow scope:
+
+```apix
+flow: {
+  customerId -> "cus_123"
+  customer -> $stripe.get("/v1/customers/{customerId}") -> Customer
+  return -> customer
+}
+```
+
+#### Request Headers
+
+Per-request headers can be specified as a third argument:
+
+```apix
+flow: {
+  result -> $api.post("/webhook", payload, {
+    headers: {
+      "X-Idempotency-Key": idempotencyKey
+    }
+  }) -> Result
+}
+```
+
+---
+
+<h2 id="environment-configuration">13. Environment Configuration</h2>
+
+### 13.1 Environment Blocks
+
+```apix
+env development {
+  server: http://localhost:3000
+  database.url: postgres://localhost/app_dev
+  stripe.apiKey: sk_test_xxx
+  cache.enabled: false
+}
+
+env production {
+  server: https://api.myapp.com
+  database.url: postgres://prod-db/app
+  stripe.apiKey: sk_live_xxx
+  cache.enabled: true
+}
+```
+
+### 13.2 Accessing Environment Values
+
+```apix
+integration stripe {
+  apiKey: $env.stripe.apiKey
+}
+
+flow: {
+  if $env.cache.enabled:
+    cached -> cache.get(key)
+}
+```
+
+---
+
+<h2 id="hooks-middleware">14. Hooks & Middleware</h2>
+
+### 14.1 Hook Definition
+
+```apix
+hook requestLogger {
+  before: {
+    log -> $request.method + " " + $request.path
+  }
+  after: {
+    log -> "Response: " + $response.statusCode + " in " + $request.duration + "ms"
+  }
+  onError: {
+    log -> "Error: " + error.message
+  }
+}
+```
+
+### 14.2 Hook Events
+
+| Event | Timing | Available Variables |
+|-------|--------|-------------------|
+| `before` | Before flow execution | `$request`, `$auth`, `$headers` |
+| `after` | After successful response | `$request`, `$response`, `$auth` |
+| `onError` | On error | `$request`, `error` |
+| `onOptions` | On OPTIONS request | `$request`, `$headers` |
+| `onRateLimit` | When rate limited | `$request` |
+
+### 14.3 Applying Hooks
+
+```apix
+# Global hooks
+@use(requestLogger, cors)
+
+# Per-route hooks
+@use(auditLog)
+POST /users -> 201:User
+
+# Disable all hooks
+@noHooks
+GET /health -> { status: str }
+```
+
+---
+
+<h2 id="webhooks">15. Webhooks</h2>
+
+### 15.1 Webhook Definition
+
+```apix
+webhook order.completed {
+  orderId!: uuid
+  status!: str
+  total!: float
+  completedAt!: datetime
+}
+```
+
+### 15.2 Triggering Webhooks
+
+```apix
+flow: {
+  order -> db.orders.update(id, { status: "completed" })
+  trigger -> order.completed(order) to order.webhookUrl
+  return -> order
+}
+```
+
+---
+
+<h2 id="scheduled-tasks">16. Scheduled Tasks</h2>
+
+### 16.1 Task Definition
+
+```apix
+task cleanupExpiredSessions {
+  schedule: daily at 02:00
+  flow: {
+    deleted -> db.sessions.where(expires_at < now()).delete()
+    log -> "Deleted " + deleted.count + " expired sessions"
+  }
+}
+```
+
+### 16.2 Schedule Expressions
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| `every <duration>` | `every 5m` | Run every 5 minutes |
+| `daily at HH:MM` | `daily at 02:00` | Run daily at 2 AM |
+| `weekly on <day> at HH:MM` | `weekly on monday at 09:00` | Run weekly |
+| `monthly on <day> at HH:MM` | `monthly on 1 at 08:00` | Run monthly |
+
+---
+
+<h2 id="error-handling">17. Error Handling</h2>
+
+### 17.1 Global Error Schema
+
+```apix
+error ApiError {
+  message!: str
+  code!: str
+  statusCode!: int
+  requestId!: uuid
+  timestamp!: datetime
+}
+```
+
+When an `error` schema is defined, all error responses MUST conform to this structure. Implementations MUST automatically populate `statusCode`, `requestId`, and `timestamp`.
+
+### 17.2 Try-Catch Blocks
+
+```apix
+try:
+  charge -> $integration.stripe.charge(amount)
+  order -> db.orders.create({ payment_id: charge.id })
+catch stripe.error:
+  return -> 402:{ message: "Payment failed", code: "PAYMENT_ERROR" }
+catch db.error:
+  return -> 500:{ message: "Database error", code: "DB_ERROR" }
+```
+
+### 17.3 Error Responses in Flows
+
+```apix
+if user == null:
+  return -> 404:{ message: "User not found", code: "USER_NOT_FOUND" }
+```
+
+---
+
+<h2 id="annotations">18. Annotations</h2>
+
+### 18.1 Caching
+
+```apix
+@cache(5m, key: products:all)
+@cache(server: 30m, client: 1h, key: user:{id})
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| Duration | Cache TTL (e.g., `30s`, `5m`, `1h`, `7d`) |
+| `key` | Cache key pattern |
+| `server` | Server-side cache duration |
+| `client` | Client-side cache (HTTP headers) |
+
+### 18.2 Cache Invalidation
+
+```apix
+@invalidate(products:*, product:{id})
+POST /products/:id -> Product
+```
+
+### 18.3 Retry
+
+```apix
+@retry(3, backoff: exponential)
+@retry(5, backoff: linear, delay: 1s)
+```
+
+### 18.4 Timeout
+
+```apix
+@timeout(10s)
+```
+
+### 18.5 Deprecation
+
+```apix
+@deprecated("Use POST /v2/users instead")
+POST /users -> 201:User
+```
+
+### 18.6 Rate Limiting
+
+```apix
+ratelimit: 100/minute
+ratelimit: 1000/hour
+```
+
+---
+
+<h2 id="built-in-functions">19. Built-in Functions</h2>
+
+Implementations MUST provide these built-in functions:
+
+### 19.1 String Functions
+
+| Function | Description |
+|----------|-------------|
+| `concat(str1, str2, ...)` | Concatenate strings |
+| `upper(str)` | Convert to uppercase |
+| `lower(str)` | Convert to lowercase |
+| `trim(str)` | Remove leading/trailing whitespace |
+| `substring(str, start, end)` | Extract substring |
+| `replace(str, search, replace)` | Replace occurrences |
+| `length(str)` | String length |
+
+### 19.2 Date/Time Functions
+
+| Function | Description |
+|----------|-------------|
+| `now()` | Current timestamp |
+| `today()` | Current date |
+| `daysAgo(n)` | Date n days ago |
+| `hoursAgo(n)` | Datetime n hours ago |
+| `minutesAgo(n)` | Datetime n minutes ago |
+| `addDays(date, n)` | Add days to date |
+| `formatDate(date, format)` | Format date as string |
+| `daysBetween(date1, date2)` | Days between dates |
+
+### 19.3 Cryptographic Functions
+
+| Function | Description |
+|----------|-------------|
+| `bcrypt(password)` | Hash password with bcrypt |
+| `verifyPassword(password, hash)` | Verify password against hash |
+| `generateJWT(payload)` | Generate JWT token |
+| `verifyJWT(token)` | Verify and decode JWT |
+| `uuid()` | Generate UUID v4 |
+| `hash(value, algorithm)` | Compute hash (sha256, etc.) |
+
+### 19.4 Validation Functions
+
+| Function | Description |
+|----------|-------------|
+| `isEmail(str)` | Validate email format |
+| `isURL(str)` | Validate URL format |
+| `isUUID(str)` | Validate UUID format |
+| `matches(str, pattern)` | Test regex pattern |
+
+---
+
+<h2 id="grammar-ebnf">20. Grammar (EBNF)</h2>
+
+The complete formal grammar is provided in [Appendix B](#appendix-b-grammar).
+
+---
+
+<h2 id="implementation-notes">21. Implementation Notes</h2>
+
+### 21.1 Compiler Requirements
+
+An APIx compiler MUST:
+1. Parse and validate APIx syntax
+2. Perform type checking across all definitions
+3. Validate database schema references
+4. Verify flow logic and return types
+5. Generate appropriate error messages with line/column information
+
+### 21.2 Runtime Requirements
+
+An APIx runtime MUST:
+1. Implement all built-in functions
+2. Handle authentication and authorization
+3. Execute flows with proper transaction management
+4. Enforce rate limiting and caching as specified
+5. Respect the `secret` type semantics
+
+### 21.3 Security Requirements
+
+Implementations MUST:
+1. Use parameterized queries to prevent SQL injection
+2. Never log or expose `secret` type values
+3. Validate all input against declared types before flow execution
+4. Implement proper CORS handling
+5. Generate cryptographically secure tokens and UUIDs
+
+### 21.4 Compilation Targets
+
+APIx MAY compile to:
+- Backend code (Go, Node.js, Python, Java, Rust, etc.)
+- OpenAPI 3.x specifications
+- GraphQL schemas
+- Database migration scripts
+- Client SDK code
+
+---
+
+<h2 id="examples">22. Examples</h2>
+
+### 22.1 Complete Todo API
+
+```apix
+api "Todo API" v1.0.0
+desc "Simple task management API"
+server https://api.todos.example.com
+
+error ApiError {
+  message!: str
+  code!: str
+  statusCode!: int
+  requestId!: uuid
+  timestamp!: datetime
+}
+
+env development {
+  server: http://localhost:3000
+  database.url: postgres://localhost/todos_dev
+}
+
+env production {
+  server: https://api.todos.example.com
+  database.url: postgres://prod-db/todos
+}
+
+type Todo {
+  id!: uuid
+  title!: str @min(1) @max(200)
+  description: str @max(1000)
+  completed!: bool
+  userId!: uuid
+  createdAt!: datetime
+  updatedAt: datetime
+}
+
+table todos {
+  id: uuid primary
+  title: varchar(200) not null
+  description: text
+  completed: boolean default(false)
+  user_id: uuid foreign(users.id) not null
+  created_at: timestamp not null
+  updated_at: timestamp
+  deleted_at: timestamp
+
+  index: [user_id, completed]
+}
+
+GET /todos -> Todo[]
+  auth: bearer
+  flow: {
+    todos -> db.todos.where(user_id = $auth.userId)
+    return -> todos
+  }
+
+GET /todos/:id -> Todo|404
+  auth: bearer
+  flow: {
+    todo -> db.todos.findById(id)
+
+    if todo == null:
+      return -> 404:{ message: "Todo not found", code: "NOT_FOUND" }
+
+    if todo.userId != $auth.userId:
+      return -> 403:{ message: "Access denied", code: "FORBIDDEN" }
+
+    return -> todo
+  }
+
+POST /todos -> 201:Todo
+  auth: bearer
+  body! {
+    title!: str @min(1) @max(200)
+    description: str @max(1000)
+    completed: bool=false
+  }
+  flow: {
+    todo -> db.todos.create({
+      title: title,
+      description: description,
+      completed: completed,
+      user_id: $auth.userId
+    })
+    return -> todo
+  }
+
+DELETE /todos/:id -> 204|404
+  auth: bearer
+  flow: {
+    existing -> db.todos.findById(id)
+
+    if existing == null:
+      return -> 404:{ message: "Todo not found", code: "NOT_FOUND" }
+
+    if existing.userId != $auth.userId:
+      return -> 403:{ message: "Access denied", code: "FORBIDDEN" }
+
+    db.todos.delete(id)
+    return -> 204
+  }
+```
+
+---
+
+<h2 id="appendix">Appendix A: References</h2>
+
+### Normative References
+
+- [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) - Key words for use in RFCs to Indicate Requirement Levels
+- [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) - Uniform Resource Identifier (URI): Generic Syntax
+- [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122) - A Universally Unique IDentifier (UUID) URN Namespace
+- [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322) - Internet Message Format (Email)
+- [RFC 7231](https://www.rfc-editor.org/rfc/rfc7231) - HTTP/1.1 Semantics and Content
+- [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) - Date and time format
+
+### Informative References
+
+- [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.0)
+- [JSON Schema](https://json-schema.org/)
+
+---
+
+<h2 id="appendix-b-grammar">Appendix B: Complete Grammar (EBNF)</h2>
+
+```ebnf
+(* APIx Grammar - Version 1.0.0 *)
+
+document = metadata, { definition } ;
+
+(* Metadata *)
+metadata = api_declaration, [ description ], server_declaration, { env_block } ;
+api_declaration = "api", string_literal, "v", version, [ "auth", ":", auth_type ] ;
+description = "desc", string_literal ;
+server_declaration = "server", url ;
+version = digit, { digit | "." } ;
+
+(* Environment *)
+env_block = "env", identifier, "{", { env_entry }, "}" ;
+env_entry = key_path, ":", value ;
+key_path = identifier, { ".", identifier } ;
+
+(* Definitions *)
+definition = error_def | type_def | table_def | integration_def
+           | webhook_def | hook_def | task_def | route ;
+
+(* Error Schema *)
+error_def = "error", identifier, "{", { field_def }, "}" ;
+
+(* Types *)
+type_def = "type", identifier, [ "<", type_params, ">" ], "{", { field_def }, "}" ;
+type_params = identifier, { ",", identifier } ;
+field_def = identifier, [ "!" ], ":", type_expr, [ "=", default_value ], { annotation } ;
+
+type_expr = primitive_type | identifier | generic_type | enum_type
+          | array_type | nullable_type | map_type | inline_object ;
+
+primitive_type = "str" | "int" | "long" | "float" | "double" | "bool"
+               | "date" | "datetime" | "time" | "email" | "uri" | "url"
+               | "uuid" | "binary" | "byte" | "secret" | "any" ;
+
+generic_type = identifier, "<", type_expr, { ",", type_expr }, ">" ;
+enum_type = enum_value, { "|", enum_value } ;
+enum_value = identifier | integer | string_literal ;
+array_type = type_expr, "[]" ;
+nullable_type = type_expr, "?" ;
+map_type = "map", "[", type_expr, "]" ;
+inline_object = "{", { field_def }, "}" ;
+
+(* Tables *)
+table_def = "table", identifier, "{", { column_def | index_def | relationship_def }, "}" ;
+column_def = identifier, ":", data_type, { constraint } ;
+data_type = "uuid" | "varchar", [ "(", integer, ")" ] | "text" | "integer"
+          | "bigint" | "real" | "double precision" | "boolean" | "date"
+          | "timestamp" | "time" | "bytea" | "jsonb"
+          | "decimal", [ "(", integer, ",", integer, ")" ] ;
+constraint = "primary" | "unique" | "not null" | "null" | "index"
+           | "default", "(", value, ")" | "foreign", "(", table_ref, ")" ;
+index_def = "index", ":", "[", identifier, { ",", identifier }, "]" ;
+relationship_def = identifier, ":", relationship_type, "(", table_ref, ")" ;
+relationship_type = "belongsTo" | "hasMany" | "hasOne" ;
+table_ref = identifier, ".", identifier ;
+
+(* Routes *)
+route = { annotation }, http_method, path, [ query_params ], "->", response_type,
+        [ string_literal ], { route_option }, "flow", ":", flow_block ;
+
+http_method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS" ;
+path = "/", { path_segment | "/" } ;
+path_segment = identifier | path_param ;
+path_param = ":", identifier | "{", identifier, "}" ;
+
+query_params = "?", query_param, { "&", query_param } ;
+query_param = identifier, [ "!" ], ":", type_expr, [ "=", default_value ] ;
+
+response_type = response_item, { "|", response_item } ;
+response_item = [ status_code, ":" ], ( identifier | inline_object ) ;
+status_code = digit, digit, digit ;
+
+route_option = auth_option | authorize_option | body_option
+             | headers_option | ratelimit_option | query_block ;
+auth_option = "auth", ":", auth_type ;
+auth_type = "bearer" | "basic" | "apikey", [ "(", apikey_location, ")" ]
+          | "oauth2" | "none" ;
+apikey_location = "header" | "query" | "cookie" ;
+authorize_option = "authorize", ":", expression ;
+body_option = "body", [ "!" ], [ ":" ], ( identifier | inline_object ) ;
+headers_option = "headers", ":", inline_object ;
+ratelimit_option = "ratelimit", ":", rate_expr ;
+rate_expr = integer, "/", time_unit ;
+time_unit = "second" | "minute" | "hour" | "day" ;
+query_block = "query", ":", inline_object ;
+
+(* Flows *)
+flow_block = "{", { flow_statement }, "}" ;
+flow_statement = assignment | conditional | match_stmt | try_catch
+               | return_stmt | loop_stmt | transaction_block | async_stmt ;
+
+assignment = [ { annotation } ], [ "async" ], identifier, "->", expression ;
+conditional = "if", expression, ":", flow_block, [ "else", ":", flow_block ] ;
+match_stmt = "match", expression, ":", { match_case } ;
+match_case = match_pattern, "->", ( flow_block | flow_statement ) ;
+match_pattern = literal | identifier, { "|", ( literal | identifier ) } | "_" ;
+try_catch = "try", ":", flow_block, { "catch", identifier, ":", flow_block } ;
+return_stmt = "return", "->", [ status_code, ":" ], expression ;
+loop_stmt = "foreach", identifier, "in", expression, ":", flow_block ;
+transaction_block = ( "transaction" | "notransaction" ), flow_block ;
+async_stmt = "async", identifier, "->", expression ;
+
+expression = primary | binary_expr | unary_expr | call_expr | member_expr ;
+primary = identifier | literal | "(" expression ")" | inline_object | array_literal ;
+binary_expr = expression, binary_op, expression ;
+binary_op = "+" | "-" | "*" | "/" | "==" | "!=" | ">" | "<" | ">=" | "<="
+          | "&&" | "||" | "like" | "in" ;
+unary_expr = "!" expression ;
+call_expr = ( identifier | member_expr ), "(", [ arg_list ], ")" ;
+member_expr = expression, ".", identifier ;
+arg_list = expression, { ",", expression } ;
+array_literal = "[", [ expression, { ",", expression } ], "]" ;
+
+(* Integrations *)
+integration_def = "integration", identifier, "{", { integration_option }, "}" ;
+integration_option = identifier, ":", value ;
+
+(* Integration calls in flows *)
+integration_call = "$", identifier, ".", integration_method, "(", string_literal, [ ",", expression ], [ ",", call_options ], ")", "->", type_expr ;
+integration_method = "get" | "post" | "put" | "patch" | "delete" ;
+call_options = "{", { identifier, ":", expression }, "}" ;
+
+(* Webhooks *)
+webhook_def = "webhook", identifier, "{", { field_def }, "}" ;
+
+(* Hooks *)
+hook_def = "hook", identifier, "{", { hook_event }, "}" ;
+hook_event = hook_type, ":", flow_block ;
+hook_type = "before" | "after" | "onError" | "onOptions" | "onRateLimit" ;
+
+(* Tasks *)
+task_def = "task", identifier, "{", "schedule", ":", schedule_expr, "flow", ":", flow_block, "}" ;
+schedule_expr = "every", duration
+              | "daily at", time_literal
+              | "weekly on", day_name, "at", time_literal
+              | "monthly on", integer, "at", time_literal ;
+duration = integer, duration_unit ;
+duration_unit = "s" | "m" | "h" | "d" ;
+day_name = "monday" | "tuesday" | "wednesday" | "thursday"
+         | "friday" | "saturday" | "sunday" ;
+
+(* Annotations *)
+annotation = "@", identifier, [ "(", annotation_args, ")" ] ;
+annotation_args = annotation_arg, { ",", annotation_arg } ;
+annotation_arg = [ identifier, ":" ], value ;
+
+(* Literals *)
+literal = string_literal | integer | float_literal | boolean | "null" ;
+string_literal = '"', { char - '"' | '\\"' }, '"' ;
+integer = [ "-" ], digit, { digit } ;
+float_literal = integer, ".", digit, { digit } ;
+boolean = "true" | "false" ;
+time_literal = digit, digit, ":", digit, digit ;
+
+(* Lexical *)
+identifier = letter, { letter | digit | "_" } ;
+letter = "a" | ... | "z" | "A" | ... | "Z" ;
+digit = "0" | ... | "9" ;
+url = "http", [ "s" ], "://", { char } ;
+char = ? any Unicode character ? ;
+```
+
+---
+
+<h2 id="appendix-c-openapi">Appendix C: OpenAPI Mapping</h2>
+
+This appendix demonstrates how APIx compiles to OpenAPI 3.1 specifications. APIx can be used in two modes:
+
+1. **Documentation Mode**: Generate OpenAPI specs for API documentation (flows are optional)
+2. **Full Backend Mode**: Generate complete backend code with business logic (flows required)
+
+When used for documentation only, the `flow:` block MAY be omitted from route definitions.
+
+### C.1 Usage Modes
+
+#### Documentation Mode (No Flows)
+
+When flows are omitted, APIx functions as a concise API specification language:
+
+```apix
+api "User API" v1.0.0
+desc "User management endpoints"
+server https://api.example.com
+
+type User {
+  id!: uuid
+  email!: email
+  name!: str
+  createdAt!: datetime
+}
+
+GET /users/:id -> User|404
+  auth: bearer
+
+POST /users -> 201:User
+  auth: bearer
+  body! {
+    email!: email
+    name!: str
+  }
+```
+
+This compiles to a complete OpenAPI specification without requiring implementation details.
+
+#### Full Backend Mode (With Flows)
+
+When flows are included, APIx generates both API documentation AND backend implementation:
+
+```apix
+GET /users/:id -> User|404
+  auth: bearer
+  flow: {
+    user -> db.users.findById(id)
+    if user == null:
+      return -> 404:{ message: "User not found" }
+    return -> user
+  }
+```
+
+### C.2 Complete Mapping Example
+
+The following example demonstrates the verbosity reduction achieved by APIx.
+
+#### APIx (23 lines)
+
+```apix
+api "Task API" v1.0.0
+desc "Simple task management"
+server https://api.tasks.io
+
+type Task {
+  id!: uuid
+  title!: str @min(1) @max(200)
+  completed!: bool
+  createdAt!: datetime
+}
+
+GET /tasks -> Task[]
+  auth: bearer
+
+GET /tasks/:id -> Task|404
+  auth: bearer
+
+POST /tasks -> 201:Task
+  auth: bearer
+  body! {
+    title!: str @min(1) @max(200)
+    completed: bool=false
+  }
+
+DELETE /tasks/:id -> 204|404
+  auth: bearer
+```
+
+#### OpenAPI 3.1 Output (127 lines)
+
+```yaml
+openapi: 3.1.0
+info:
+  title: Task API
+  version: 1.0.0
+  description: Simple task management
+servers:
+  - url: https://api.tasks.io
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - completed
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        completed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        completed:
+          type: boolean
+          default: false
+    Error:
+      type: object
+      required:
+        - message
+        - code
+        - statusCode
+        - requestId
+        - timestamp
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        statusCode:
+          type: integer
+        requestId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+paths:
+  /tasks:
+    get:
+      summary: List tasks
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      summary: Create task
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get task by ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete task
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Task deleted
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+```
+
+### C.3 Mapping Reference
+
+#### Types to Schemas
+
+| APIx | OpenAPI |
+|------|---------|
+| `str` | `type: string` |
+| `int` | `type: integer, format: int32` |
+| `long` | `type: integer, format: int64` |
+| `float` | `type: number, format: float` |
+| `double` | `type: number, format: double` |
+| `bool` | `type: boolean` |
+| `date` | `type: string, format: date` |
+| `datetime` | `type: string, format: date-time` |
+| `email` | `type: string, format: email` |
+| `uuid` | `type: string, format: uuid` |
+| `uri` | `type: string, format: uri` |
+| `secret` | `type: string, format: password` (excluded from responses) |
+| `any` | `{}` (empty schema) |
+
+#### Constraints to Validation
+
+| APIx | OpenAPI |
+|------|---------|
+| `@min(n)` on `str` | `minLength: n` |
+| `@max(n)` on `str` | `maxLength: n` |
+| `@min(n)` on `int/float` | `minimum: n` |
+| `@max(n)` on `int/float` | `maximum: n` |
+| `@pattern(regex)` | `pattern: regex` |
+| `@min(n)` on `[]` | `minItems: n` |
+| `@max(n)` on `[]` | `maxItems: n` |
+
+#### Authentication Mapping
+
+| APIx | OpenAPI Security Scheme |
+|------|------------------------|
+| `auth: bearer` | `type: http, scheme: bearer` |
+| `auth: basic` | `type: http, scheme: basic` |
+| `auth: apikey` | `type: apiKey, in: header` |
+| `auth: apikey(query)` | `type: apiKey, in: query` |
+| `auth: oauth2` | `type: oauth2` |
+
+#### Response Codes
+
+| APIx | OpenAPI |
+|------|---------|
+| `-> Type` | `200` response with schema |
+| `-> 201:Type` | `201` response with schema |
+| `-> 204` | `204` response, no content |
+| `-> Type\|404` | `200` + `404` responses |
+| `-> Type\|404:ErrorType` | `200` + `404` with typed error |
+
+### C.4 Elements Not Mapped to OpenAPI
+
+The following APIx elements are used for backend generation only and have no OpenAPI equivalent:
+
+| Element | Purpose |
+|---------|---------|
+| `flow: { }` | Request handling logic |
+| `table { }` | Database schema |
+| `integration { }` | External API clients |
+| `hook { }` | Middleware |
+| `task { }` | Scheduled jobs |
+| `webhook { }` | Outbound events |
+| `@cache`, `@retry` | Runtime behavior |
+| `authorize:` | Authorization logic (security schemes only in OpenAPI) |
+
+These elements MAY be omitted when using APIx purely for API documentation.
+
+---
+
+**Version:** 1.0.0
+**Status:** Draft
+**Last Updated:** November 2024
+**License:** MIT
