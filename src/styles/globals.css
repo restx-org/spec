@@ -145,6 +145,36 @@ tr:hover td {
 ul, ol {
   margin: 0.75rem 0;
   padding-left: 1.5rem;
+  list-style: none;
+}
+
+article ul > li {
+  position: relative;
+  padding-left: 1rem;
+}
+
+article ul > li::before {
+  content: "-";
+  position: absolute;
+  left: 0;
+  color: var(--text-tertiary);
+}
+
+article ol {
+  counter-reset: list-counter;
+}
+
+article ol > li {
+  position: relative;
+  padding-left: 1.5rem;
+  counter-increment: list-counter;
+}
+
+article ol > li::before {
+  content: counter(list-counter) ".";
+  position: absolute;
+  left: 0;
+  color: var(--text-tertiary);
 }
 
 li {
