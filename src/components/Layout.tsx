@@ -105,7 +105,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         background: 'var(--bg-secondary)',
         borderBottom: '1px solid var(--border-primary)'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ padding: '0 1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '3.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
@@ -201,6 +201,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
             ))}
           </ul>
         </nav>
+        {/* Contributors */}
+        <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid var(--border-primary)', marginTop: '1rem' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Contributors</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <a
+              href="https://github.com/kopahead"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Elvis Magagula"
+              style={{ display: 'block' }}
+            >
+              <img
+                src="https://avatars.githubusercontent.com/u/27224198?s=64&v=4"
+                alt="Elvis Magagula"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '1px solid var(--border-primary)'
+                }}
+              />
+            </a>
+          </div>
+        </div>
       </aside>
 
       {/* Main content */}
