@@ -124,7 +124,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </svg>
               </button>
               <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)' }}>restx</span>
+                <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)' }}>rest<span style={{ color: 'var(--highlight-purple)' }}>x</span></span>
                 <span style={{ color: 'var(--text-tertiary)' }}>spec</span>
               </a>
             </div>
