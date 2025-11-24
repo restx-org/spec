@@ -1,8 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
-const navigation = [
+const editorNavigation = [
+  { title: 'VS Code', href: '#visual-studio-code' },
+  { title: 'Features', href: '#features' },
+  { title: 'Source Code', href: '#source-code' },
+  { title: 'Other Editors', href: '#other-editors' },
+]
+
+const specNavigation = [
   { title: 'Why RESTx?', href: '#why-restx' },
   { title: 'Introduction', href: '#introduction' },
   { title: 'Notational Conventions', href: '#notational-conventions' },
@@ -79,6 +87,10 @@ const navigation = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const pathname = usePathname()
+
+  const isEditorPage = pathname === '/editor'
+  const navigation = isEditorPage ? editorNavigation : specNavigation
 
   useEffect(() => {
     // Check system preference
@@ -130,6 +142,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </a>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <a
+                href="/editor"
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none'
+                }}
+                className="nav-link"
+              >
+                Editor
+              </a>
               <span className="version-badge">v1.0.0</span>
               <button
                 onClick={toggleTheme}

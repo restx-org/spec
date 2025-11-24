@@ -1,0 +1,77 @@
+# Editor Support
+
+Get syntax highlighting and autocompletion for `.restx` files.
+
+---
+
+## Visual Studio Code
+
+The official RESTx extension provides syntax highlighting, context-aware autocompletion, and hover documentation.
+
+### Installation
+
+**From VSIX (Local Installation)**
+
+1. Download the latest `.vsix` from [releases](https://github.com/restx-org/vscode-restx/releases)
+2. In VS Code, press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS)
+3. Select **Extensions: Install from VSIX...**
+4. Choose the downloaded file
+
+**Build from source**
+
+```bash
+git clone https://github.com/restx-org/vscode-restx.git
+cd vscode-restx
+npm install && npm run compile && npm run package
+```
+
+Then install the generated `.vsix` file using the steps above.
+
+---
+
+## Features
+
+### Syntax Highlighting & Autocompletion
+
+Full syntax highlighting for all RESTx constructs including keywords, types, annotations, strings, and comments. Context-aware autocompletion suggests types, operations, and more as you type.
+
+![Type autocompletion in VS Code](/type-support.png)
+
+### Autocompletion
+
+Context-aware suggestions as you type:
+
+| Context | Suggestions |
+|---------|-------------|
+| Top-level | `api`, `env`, `type`, `table`, `integration`, `webhook`, `hook`, `task`, `error` |
+| HTTP methods | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS` |
+| Types | `str`, `int`, `long`, `float`, `double`, `bool`, `date`, `datetime`, `time`, `email`, `uri`, `url`, `uuid`, `binary`, `byte`, `secret`, `any` |
+| After `@` | `@cache`, `@retry`, `@timeout`, `@deprecated`, `@min`, `@max`, `@pattern`, `@unique`, `@exists`, `@use`, `@invalidate`, `@cron` |
+| After `db.table.` | `findById`, `where`, `all`, `first`, `create`, `update`, `delete`, `paginate`, `count`, `sum`, `average`, `min`, `max`, `orderBy`, `limit`, `offset`, `include`, `join` |
+| After `$` | `$auth`, `$env`, `$request`, `$headers`, `$query` |
+| After `auth:` | `bearer`, `basic`, `apikey`, `oauth2`, `none` |
+
+### Hover Documentation
+
+Hover over built-in types and functions to see inline documentation.
+
+---
+
+## Source Code
+
+The extension source code is available at [github.com/restx-org/vscode-restx](https://github.com/restx-org/vscode-restx).
+
+---
+
+## Other Editors
+
+Support for additional editors is planned:
+
+| Editor | Status |
+|--------|--------|
+| JetBrains IDEs | Planned |
+| Neovim | Planned |
+| Sublime Text | Planned |
+| Emacs | Planned |
+
+Community contributions for editor support are welcome.
