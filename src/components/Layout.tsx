@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 
 const navigation = [
+  { title: 'Why RESTx?', href: '#why-restx' },
   { title: 'Introduction', href: '#introduction' },
   { title: 'Notational Conventions', href: '#notational-conventions' },
   { title: 'Design Philosophy', href: '#design-philosophy' },
@@ -58,7 +59,7 @@ const navigation = [
       { title: 'Transactions', href: '#transactions' },
     ]
   },
-  { title: 'Authentication & Authorization', href: '#authentication-authorization' },
+  { title: 'Authentication & Authorisation', href: '#authentication-authorization' },
   { title: 'Integrations', href: '#integrations' },
   { title: 'Environment Configuration', href: '#environment-configuration' },
   { title: 'Hooks & Middleware', href: '#hooks-middleware' },

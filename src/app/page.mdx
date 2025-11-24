@@ -1,6 +1,42 @@
-# RESTx Language Specification
+# RESTx Specification
 
 **Version 1.0.0**
+
+> **Note:** RESTx is not a programming language. It is a declarative specification format—similar to OpenAPI or JSON Schema—that describes what your API should do, not how to implement it. RESTx documents are compiled into production-ready backend code, database migrations, and OpenAPI documentation. Think of it as a blueprint that generates your entire backend stack.
+
+<h2 id="why-restx">Why RESTx?</h2>
+
+Building REST APIs typically requires writing thousands of lines of repetitive code: route handlers, validation logic, database queries, authentication middleware, error handling, and documentation. This boilerplate is tedious, error-prone, and difficult to maintain.
+
+RESTx addresses this by letting you describe your API once in a concise format, then generating everything else automatically. What takes 500 lines of framework code can be expressed in 20 lines of RESTx.
+
+### When to Use RESTx
+
+**Ideal for:**
+- **New API projects** — Start with a clear specification and generate your entire backend
+- **API-first development** — Design your contract before implementation
+- **Prototyping** — Quickly spin up a working backend to validate ideas
+- **Microservices** — Define small, focused services with minimal boilerplate
+- **Team collaboration** — Non-developers can read and contribute to API design
+- **AI-assisted development** — Low token count makes RESTx ideal for LLM code generation
+
+**Less suitable for:**
+- Complex business logic that cannot be expressed declaratively
+- Legacy system integration requiring custom adapters
+- Applications where you need fine-grained control over every implementation detail
+
+### What RESTx Generates
+
+From a single `.restx` file, compilers can generate:
+
+| Output | Description |
+|--------|-------------|
+| **Backend Service** | Complete server code (Node.js, Python, Go, etc.) |
+| **Database Migrations** | Schema creation and modification scripts |
+| **OpenAPI Spec** | API documentation for Swagger/Redoc |
+| **Type Definitions** | TypeScript interfaces, Python dataclasses, etc. |
+| **Client SDKs** | Type-safe API clients for frontend applications |
+| **Validation Logic** | Request/response validation middleware |
 
 ## Abstract
 
@@ -16,7 +52,7 @@ This is a draft specification. Feedback is welcome via the [GitHub repository](h
 
 ### 1.1 Purpose
 
-RESTx is a declarative domain-specific language designed to reduce the verbosity of API specifications while maintaining expressiveness. A RESTx document describes the complete structure of a backend API, including types, database schema, routes, authentication, and integrations.
+RESTx is a declarative domain-specific language designed to reduce the verbosity of API specifications whilst maintaining expressiveness. A RESTx document describes the complete structure of a backend API, including types, database schema, routes, authentication, and integrations.
 
 ### 1.2 Goals
 
@@ -24,7 +60,7 @@ RESTx is a declarative domain-specific language designed to reduce the verbosity
 - **Readability**: Enable understanding of an API structure at a glance
 - **Type Safety**: Provide strong typing with automatic validation
 - **Implementation Agnosticism**: Support compilation to any backend technology
-- **AI Optimization**: Optimize for AI code generation through low token count and clear structure
+- **AI Optimisation**: Optimise for AI code generation through low token count and clear structure
 
 ### 1.3 Scope
 
@@ -34,7 +70,7 @@ This specification defines:
 - Database schema definition
 - Route and endpoint declaration
 - Flow operations for request handling
-- Authentication and authorization mechanisms
+- Authentication and authorisation mechanisms
 
 This specification does not define:
 - Implementation details of compilers or runtimes
@@ -78,7 +114,7 @@ Throughout this specification:
 
 ### 3.1 Declarative Over Imperative
 
-RESTx adopts a declarative paradigm where developers specify *what* the API should do rather than *how* to implement it. Implementations MUST interpret declarations and generate appropriate runtime behavior.
+RESTx adopts a declarative paradigm where developers specify *what* the API should do rather than *how* to implement it. Implementations MUST interpret declarations and generate appropriate runtime behaviour.
 
 ```restx
 # Declarative specification
@@ -104,7 +140,7 @@ Common patterns SHOULD have implicit sensible defaults. Implementations MUST app
 | Path Parameters | Always required |
 | Query Parameters | Optional unless marked with `!` |
 | Multiple DB Operations | Automatic transaction wrapping |
-| `deleted_at` Column | Soft delete behavior enabled |
+| `deleted_at` Column | Soft delete behaviour enabled |
 | `created_at` Column | Auto-set on INSERT |
 | `updated_at` Column | Auto-updated on UPDATE |
 
@@ -519,7 +555,7 @@ table orders {
 
 ### 7.6 Soft Delete Convention
 
-If a table contains a `deleted_at` column of type `timestamp`, implementations MUST enable soft delete behavior:
+If a table contains a `deleted_at` column of type `timestamp`, implementations MUST enable soft delete behaviour:
 
 - `DELETE` operations MUST set `deleted_at` to the current timestamp
 - Query operations MUST exclude records where `deleted_at IS NOT NULL` by default
@@ -709,7 +745,7 @@ user -> db.users.findById(id).include(orders)
 user -> db.users.findById(id).include(orders, payments)
 ```
 
-The `include` operation loads related records in a single query or optimized batch query.
+The `include` operation loads related records in a single query or optimised batch query.
 
 #### 8.5.2 Join
 
@@ -732,7 +768,7 @@ stats -> db.query(`
 `, [userId])
 ```
 
-Implementations MUST use parameterized queries to prevent SQL injection.
+Implementations MUST use parameterised queries to prevent SQL injection.
 
 ---
 
@@ -999,7 +1035,7 @@ Implementations SHOULD use the database's default isolation level. If a specific
 
 #### 10.5.5 Read Operations in Transactions
 
-Read operations (`findById`, `where`, `all`, etc.) SHOULD participate in the active transaction to ensure consistency, but implementations MAY optimize read-only flows to skip transaction overhead.
+Read operations (`findById`, `where`, `all`, etc.) SHOULD participate in the active transaction to ensure consistency, but implementations MAY optimise read-only flows to skip transaction overhead.
 
 ### 10.6 Asynchronous Operations
 
@@ -1031,7 +1067,7 @@ transform -> user {
 
 ---
 
-<h2 id="authentication-authorization">11. Authentication & Authorization</h2>
+<h2 id="authentication-authorization">11. Authentication & Authorisation</h2>
 
 ### 11.1 Authentication Types
 
@@ -1054,9 +1090,9 @@ api "API Name" v1.0.0
 
 When specified at the API level, all routes inherit this authentication. Individual routes MAY override with `auth: none`.
 
-### 11.3 Authorization
+### 11.3 Authorisation
 
-Authorization determines whether an authenticated user may access a specific endpoint.
+Authorisation determines whether an authenticated user may access a specific endpoint.
 
 ```restx
 GET /admin/stats -> Stats
@@ -1064,11 +1100,11 @@ GET /admin/stats -> Stats
   authorize: $auth.role == "admin"
 ```
 
-The `authorize` expression is evaluated BEFORE the flow executes. If authorization fails, implementations MUST return 403 Forbidden without executing the flow.
+The `authorize` expression is evaluated BEFORE the flow executes. If authorisation fails, implementations MUST return 403 Forbidden without executing the flow.
 
-### 11.4 Resource-Based Authorization
+### 11.4 Resource-Based Authorisation
 
-When authorization depends on the resource being accessed, checks MUST be performed within the flow:
+When authorisation depends on the resource being accessed, checks MUST be performed within the flow:
 
 ```restx
 GET /orders/:orderId -> Order
@@ -1088,7 +1124,7 @@ GET /orders/:orderId -> Order
 
 ### 11.5 Magic Variables
 
-These variables are available in flows and authorization expressions:
+These variables are available in flows and authorisation expressions:
 
 | Variable | Scope | Description |
 |----------|-------|-------------|
@@ -1577,7 +1613,7 @@ An RESTx compiler MUST:
 
 An RESTx runtime MUST:
 1. Implement all built-in functions
-2. Handle authentication and authorization
+2. Handle authentication and authorisation
 3. Execute flows with proper transaction management
 4. Enforce rate limiting and caching as specified
 5. Respect the `secret` type semantics
@@ -1585,7 +1621,7 @@ An RESTx runtime MUST:
 ### 21.3 Security Requirements
 
 Implementations MUST:
-1. Use parameterized queries to prevent SQL injection
+1. Use parameterised queries to prevent SQL injection
 2. Never log or expose `secret` type values
 3. Validate all input against declared types before flow execution
 4. Implement proper CORS handling
@@ -2189,7 +2225,7 @@ The following RESTx elements are used for backend generation only and have no Op
 | `hook { }` | Middleware |
 | `task { }` | Scheduled jobs |
 | `webhook { }` | Outbound events |
-| `@cache`, `@retry` | Runtime behavior |
-| `authorize:` | Authorization logic (security schemes only in OpenAPI) |
+| `@cache`, `@retry` | Runtime behaviour |
+| `authorize:` | Authorisation logic (security schemes only in OpenAPI) |
 
 These elements MAY be omitted when using RESTx purely for API documentation.
