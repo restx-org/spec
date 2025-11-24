@@ -1,14 +1,14 @@
-# APIx Language Specification
+# RESTx Language Specification
 
 **Version 1.0.0**
 
 ## Abstract
 
-This document defines APIx, a declarative domain-specific language (DSL) for specifying backend REST APIs. APIx provides a concise, human-readable syntax that compiles to production-ready backend services, OpenAPI specifications, and database migrations.
+This document defines RESTx, a declarative domain-specific language (DSL) for specifying backend REST APIs. RESTx provides a concise, human-readable syntax that compiles to production-ready backend services, OpenAPI specifications, and database migrations.
 
 ## Status of This Document
 
-This is a draft specification. Feedback is welcome via the [GitHub repository](https://github.com/apix-org/spec).
+This is a draft specification. Feedback is welcome via the [GitHub repository](https://github.com/restx-org/spec).
 
 ---
 
@@ -16,7 +16,7 @@ This is a draft specification. Feedback is welcome via the [GitHub repository](h
 
 ### 1.1 Purpose
 
-APIx is a declarative domain-specific language designed to reduce the verbosity of API specifications while maintaining expressiveness. An APIx document describes the complete structure of a backend API, including types, database schema, routes, authentication, and integrations.
+RESTx is a declarative domain-specific language designed to reduce the verbosity of API specifications while maintaining expressiveness. A RESTx document describes the complete structure of a backend API, including types, database schema, routes, authentication, and integrations.
 
 ### 1.2 Goals
 
@@ -29,7 +29,7 @@ APIx is a declarative domain-specific language designed to reduce the verbosity 
 ### 1.3 Scope
 
 This specification defines:
-- The syntax and semantics of the APIx language
+- The syntax and semantics of the RESTx language
 - The type system and validation rules
 - Database schema definition
 - Route and endpoint declaration
@@ -78,9 +78,9 @@ Throughout this specification:
 
 ### 3.1 Declarative Over Imperative
 
-APIx adopts a declarative paradigm where developers specify *what* the API should do rather than *how* to implement it. Implementations MUST interpret declarations and generate appropriate runtime behavior.
+RESTx adopts a declarative paradigm where developers specify *what* the API should do rather than *how* to implement it. Implementations MUST interpret declarations and generate appropriate runtime behavior.
 
-```apix
+```restx
 # Declarative specification
 GET /users?page:int=1&limit:int=10 -> Paginated<User>
   flow: {
@@ -122,11 +122,11 @@ Implementations MUST perform type checking at compile time. Runtime type errors 
 
 ### 4.1 File Format
 
-An APIx document MUST be encoded in UTF-8. The file extension SHOULD be `.apix`.
+An RESTx document MUST be encoded in UTF-8. The file extension SHOULD be `.restx`.
 
 ### 4.2 Document Sections
 
-An APIx document consists of the following sections, which SHOULD appear in this order:
+An RESTx document consists of the following sections, which SHOULD appear in this order:
 
 1. **Metadata** (REQUIRED) - API declaration, description, server URL
 2. **Error Schema** (OPTIONAL) - Global error response structure
@@ -141,7 +141,7 @@ An APIx document consists of the following sections, which SHOULD appear in this
 
 ### 4.3 Basic Syntax Rules
 
-1. APIx is case-sensitive
+1. RESTx is case-sensitive
 2. Indentation MUST use 2 spaces; tabs are not permitted
 3. Comments begin with `#` and extend to end of line
 4. String literals MUST use double quotes (`"string"`)
@@ -166,7 +166,7 @@ Implementations SHOULD enforce these naming conventions:
 
 ### 5.1 Metadata
 
-Every APIx document MUST begin with metadata declarations.
+Every RESTx document MUST begin with metadata declarations.
 
 #### 5.1.1 API Declaration
 
@@ -177,7 +177,7 @@ version = digit, { digit | "." } ;
 
 The API declaration MUST include a title and version number.
 
-```apix
+```restx
 api "Shop API" v1.0.0
 ```
 
@@ -189,7 +189,7 @@ description = "desc", string_literal ;
 
 The description is OPTIONAL and provides a human-readable summary.
 
-```apix
+```restx
 desc "E-commerce REST API for managing products and orders"
 ```
 
@@ -201,7 +201,7 @@ server_declaration = "server", url ;
 
 At least one server URL MUST be declared.
 
-```apix
+```restx
 server https://api.example.com
 ```
 
@@ -213,7 +213,7 @@ comment = "#", { any_character }, newline ;
 
 Comments begin with `#` and continue to the end of the line. Multi-line comments require multiple `#` prefixes.
 
-```apix
+```restx
 # This is a comment
 # This is another comment
 ```
@@ -224,7 +224,7 @@ Comments begin with `#` and continue to the end of the line. Multi-line comments
 
 ### 6.1 Overview
 
-The APIx type system provides strong static typing with support for primitive types, complex types, generics, and type constraints.
+The RESTx type system provides strong static typing with support for primitive types, complex types, generics, and type constraints.
 
 <h3 id="primitive-types">6.2 Primitive Types</h3>
 
@@ -256,7 +256,7 @@ Implementations MUST support the following primitive types:
 
 The `!` suffix on a field name indicates the field is REQUIRED in request payloads.
 
-```apix
+```restx
 email!: email  # Field MUST be present
 ```
 
@@ -264,7 +264,7 @@ email!: email  # Field MUST be present
 
 The `?` suffix on a type indicates the value MAY be `null`.
 
-```apix
+```restx
 age: int?  # Value MAY be null
 ```
 
@@ -272,7 +272,7 @@ age: int?  # Value MAY be null
 
 The `[]` suffix indicates an array of the specified type.
 
-```apix
+```restx
 tags: str[]  # Array of strings
 ```
 
@@ -280,7 +280,7 @@ tags: str[]  # Array of strings
 
 The `=` operator specifies a default value applied when the field is absent.
 
-```apix
+```restx
 status: active|inactive=active  # Defaults to "active"
 ```
 
@@ -288,7 +288,7 @@ status: active|inactive=active  # Defaults to "active"
 
 Modifiers MAY be combined. The order is: `type`, `[]`, `?`.
 
-```apix
+```restx
 optionalTags: str[]?  # Nullable array of strings
 ```
 
@@ -303,7 +303,7 @@ enum_type = enum_value, { "|", enum_value } ;
 enum_value = identifier | integer | string_literal ;
 ```
 
-```apix
+```restx
 status: active|inactive|pending
 priority: 1|2|3|4|5
 ```
@@ -312,7 +312,7 @@ priority: 1|2|3|4|5
 
 Anonymous object types MAY be defined inline.
 
-```apix
+```restx
 {
   name!: str
   age: int
@@ -324,7 +324,7 @@ Anonymous object types MAY be defined inline.
 
 Map types represent key-value collections where keys are strings.
 
-```apix
+```restx
 metadata: map[str]     # Map with string values
 prices: map[float]     # Map with float values
 settings: map[any]     # Map with any JSON values
@@ -336,7 +336,7 @@ settings: map[any]     # Map with any JSON values
 
 Implementations MUST provide the `Paginated<T>` generic type:
 
-```apix
+```restx
 type Paginated<T> {
   data!: T[]
   page!: int
@@ -351,7 +351,7 @@ type Paginated<T> {
 
 Users MAY define custom generic types using angle bracket notation:
 
-```apix
+```restx
 type ApiResponse<T> {
   success!: bool
   data: T
@@ -369,7 +369,7 @@ type_def = "type", identifier, [ "<", type_params, ">" ], "{", { field_def }, "}
 field_def = identifier, [ "!" ], ":", type_expr, [ "=", default_value ], { annotation } ;
 ```
 
-```apix
+```restx
 type User {
   id!: uuid
   email!: email @unique(db.users.email) @max(255)
@@ -405,7 +405,7 @@ Type constraints are specified using annotations on fields.
 | `@unique(table.column)` | Any | Unique constraint against database |
 | `@exists(table.column)` | Any | Foreign key validation |
 
-```apix
+```restx
 type Product {
   name!: str @min(1) @max(200)
   price!: float @min(0) @max(999999.99)
@@ -424,7 +424,7 @@ type Product {
 table_def = "table", identifier, "{", { column_def | index_def | relationship_def }, "}" ;
 ```
 
-```apix
+```restx
 table users {
   id: uuid primary
   email: varchar(255) unique not null
@@ -434,9 +434,9 @@ table users {
 
 <h3 id="column-types">7.2 Column Types</h3>
 
-Implementations SHOULD map APIx column types to appropriate database-specific types:
+Implementations SHOULD map RESTx column types to appropriate database-specific types:
 
-| APIx Type | Suggested SQL Type |
+| RESTx Type | Suggested SQL Type |
 |-----------|-------------------|
 | `uuid` | `UUID` or `CHAR(36)` |
 | `varchar(n)` | `VARCHAR(n)` |
@@ -473,13 +473,13 @@ constraint = "primary" | "unique" | "not null" | "null" | "index"
 
 Multiple constraints MAY be applied to a single column:
 
-```apix
+```restx
 email: varchar(255) unique not null index
 ```
 
 ### 7.4 Composite Indexes
 
-```apix
+```restx
 table orders {
   id: uuid primary
   user_id: uuid foreign(users.id)
@@ -504,7 +504,7 @@ relationship_type = "belongsTo" | "hasMany" | "hasOne" ;
 | `hasMany(table.column)` | One-to-Many | This record has many related records |
 | `hasOne(table.column)` | One-to-One | This record has one related record |
 
-```apix
+```restx
 table users {
   id: uuid primary
   orders: hasMany(orders.user_id)
@@ -551,7 +551,7 @@ This section defines the semantics of database query operations used within flow
 | Find first | `db.table.first()` | Retrieve first matching record |
 | Find one | `db.table.where(...).first()` | Retrieve first record matching criteria |
 
-```apix
+```restx
 user -> db.users.findById(id)
 users -> db.users.all()
 admin -> db.users.where(role = "admin").first()
@@ -569,13 +569,13 @@ operator = "=" | "!=" | ">" | "<" | ">=" | "<=" | "like" | "in" ;
 
 Multiple conditions in a single `where` call are combined with AND:
 
-```apix
+```restx
 orders -> db.orders.where(user_id = userId, status = "paid")
 ```
 
 Multiple `where` calls are also combined with AND:
 
-```apix
+```restx
 products -> db.products
   .where(category = category)
   .where(price >= minPrice)
@@ -584,7 +584,7 @@ products -> db.products
 
 #### 8.1.3 Sorting
 
-```apix
+```restx
 users -> db.users.orderBy(created_at, desc)
 users -> db.users.orderBy(name, asc)
 ```
@@ -593,14 +593,14 @@ The second parameter MUST be either `asc` or `desc`. If omitted, implementations
 
 #### 8.1.4 Limiting Results
 
-```apix
+```restx
 recent -> db.orders.limit(10)
 page -> db.users.offset(20).limit(10)
 ```
 
 #### 8.1.5 Pagination
 
-```apix
+```restx
 users -> db.users.paginate(page, limit)
 ```
 
@@ -629,14 +629,14 @@ The `paginate` operation MUST return a `Paginated<T>` structure containing:
 
 #### 8.2.2 Null Checks
 
-```apix
+```restx
 active -> db.users.where(deleted_at = null)
 deleted -> db.users.where(deleted_at != null)
 ```
 
 #### 8.2.3 Date Comparisons
 
-```apix
+```restx
 recent -> db.orders.where(created_at > daysAgo(7))
 today -> db.logs.where(timestamp >= today())
 ```
@@ -651,7 +651,7 @@ today -> db.logs.where(timestamp >= today())
 | Minimum | `db.table.min(column)` | Column type |
 | Maximum | `db.table.max(column)` | Column type |
 
-```apix
+```restx
 total -> db.orders.where(user_id = userId).sum(amount)
 count -> db.users.where(active = true).count()
 avgPrice -> db.products.average(price)
@@ -661,7 +661,7 @@ avgPrice -> db.products.average(price)
 
 #### 8.4.1 Create
 
-```apix
+```restx
 user -> db.users.create({ email, name, role: "user" })
 ```
 
@@ -673,7 +673,7 @@ The `create` operation MUST:
 
 #### 8.4.2 Update
 
-```apix
+```restx
 user -> db.users.update(id, { name, updated_at: now() })
 ```
 
@@ -684,7 +684,7 @@ The `update` operation MUST:
 
 #### 8.4.3 Delete
 
-```apix
+```restx
 db.users.delete(id)
 ```
 
@@ -694,7 +694,7 @@ The `delete` operation MUST:
 
 #### 8.4.4 Force Delete
 
-```apix
+```restx
 db.users.forceDelete(id)
 ```
 
@@ -704,7 +704,7 @@ Permanently removes the record regardless of soft delete configuration.
 
 #### 8.5.1 Include (Eager Loading)
 
-```apix
+```restx
 user -> db.users.findById(id).include(orders)
 user -> db.users.findById(id).include(orders, payments)
 ```
@@ -713,7 +713,7 @@ The `include` operation loads related records in a single query or optimized bat
 
 #### 8.5.2 Join
 
-```apix
+```restx
 data -> db.orders.where(user_id = userId).join(user)
 ```
 
@@ -723,7 +723,7 @@ The `join` operation performs a database join and returns combined data.
 
 For complex queries not expressible in the query builder, raw SQL MAY be used:
 
-```apix
+```restx
 stats -> db.query(`
   SELECT DATE(created_at) as date, COUNT(*) as count
   FROM orders
@@ -745,7 +745,7 @@ route = { annotation }, http_method, path, [ query_params ], "->", response_type
         [ string_literal ], { route_option }, "flow", ":", flow_block ;
 ```
 
-```apix
+```restx
 GET /users/:id -> User|404
   auth: bearer
   flow: {
@@ -774,7 +774,7 @@ GET /users/:id -> User|404
 
 Path parameters are denoted with `:` or `{}` prefix and are always REQUIRED.
 
-```apix
+```restx
 GET /users/:id -> User
 GET /users/{id} -> User
 GET /orgs/:orgId/users/:userId -> User
@@ -786,14 +786,14 @@ Path parameters are directly available in the flow scope by their name.
 
 Query parameters are declared after `?` and are OPTIONAL by default.
 
-```apix
+```restx
 GET /users?page:int=1&limit:int=10 -> User[]
 GET /search?q:str! -> Results  # Required query param
 ```
 
 For routes with many query parameters, block syntax MAY be used:
 
-```apix
+```restx
 GET /users -> User[]
   query: {
     page: int=1,
@@ -825,7 +825,7 @@ body_option = "body", [ "!" ], inline_object ;
 - `body!` or `body! { ... }`: Request body is REQUIRED; requests without a body MUST be rejected with 400
 - `body` or `body { ... }`: Request body is OPTIONAL
 
-```apix
+```restx
 # Required body with inline schema
 POST /users -> 201:User
   body! {
@@ -850,7 +850,7 @@ Body fields are directly available in the flow scope.
 
 ### 9.5 Request Headers
 
-```apix
+```restx
 GET /data -> Data
   headers: {
     X-API-Key!: str,
@@ -864,7 +864,7 @@ Headers are available in flows via the `$headers` variable.
 
 #### 9.6.1 Simple Response
 
-```apix
+```restx
 GET /users -> User[]
 ```
 
@@ -872,14 +872,14 @@ Implies status code 200 with response body of type `User[]`.
 
 #### 9.6.2 Explicit Status Code
 
-```apix
+```restx
 POST /users -> 201:User
 DELETE /users/:id -> 204
 ```
 
 #### 9.6.3 Multiple Response Types
 
-```apix
+```restx
 GET /users/:id -> User|404|403
 GET /users/:id -> User|404:NotFoundError|403:ForbiddenError
 ```
@@ -888,7 +888,7 @@ The `|` operator specifies alternative response types. Implementations MUST vali
 
 #### 9.6.4 Inline Response Types
 
-```apix
+```restx
 GET /health -> { status: str, timestamp: datetime }
 ```
 
@@ -912,7 +912,7 @@ flow_statement = assignment | conditional | match | try_catch
 assignment = [ { annotation } ], identifier, "->", expression ;
 ```
 
-```apix
+```restx
 user -> db.users.findById(id)
 fullName -> user.firstName + " " + user.lastName
 hash -> bcrypt(password)
@@ -924,7 +924,7 @@ hash -> bcrypt(password)
 conditional = "if", expression, ":", block, [ "else", ":", block ] ;
 ```
 
-```apix
+```restx
 if user == null:
   return -> 404:{ message: "Not found" }
 
@@ -942,7 +942,7 @@ match_case = pattern, "->", ( block | statement ) ;
 pattern = literal | identifier | "_" | pattern, "|", pattern ;
 ```
 
-```apix
+```restx
 match charge.status:
   "success" -> {
     order -> db.orders.create({ payment_id: charge.id })
@@ -960,7 +960,7 @@ The `_` pattern matches any value and MUST appear last if present.
 
 When a flow contains multiple database mutation operations, implementations MUST wrap them in a transaction by default.
 
-```apix
+```restx
 flow: {
   db.accounts.update(fromId, { balance: balance - amount })
   db.accounts.update(toId, { balance: balance + amount })
@@ -973,7 +973,7 @@ All three operations execute within a single transaction. If any operation fails
 
 #### 10.5.2 Explicit Transaction Block
 
-```apix
+```restx
 transaction {
   db.accounts.update(fromId, { balance: balance - amount })
   db.accounts.update(toId, { balance: balance + amount })
@@ -984,7 +984,7 @@ transaction {
 
 Operations that SHOULD NOT be rolled back (e.g., audit logs) can be excluded:
 
-```apix
+```restx
 notransaction {
   db.audit_logs.create({ action: "transfer", user_id: $auth.userId })
 }
@@ -995,7 +995,7 @@ notransaction log -> db.audit_logs.create({ ... })
 
 #### 10.5.4 Transaction Isolation
 
-Implementations SHOULD use the database's default isolation level. If a specific isolation level is required, implementations MAY provide configuration options outside the APIx specification.
+Implementations SHOULD use the database's default isolation level. If a specific isolation level is required, implementations MAY provide configuration options outside the RESTx specification.
 
 #### 10.5.5 Read Operations in Transactions
 
@@ -1003,7 +1003,7 @@ Read operations (`findById`, `where`, `all`, etc.) SHOULD participate in the act
 
 ### 10.6 Asynchronous Operations
 
-```apix
+```restx
 async send -> email.welcome(user.email)
 queue -> processPayment(order.id)
 ```
@@ -1012,7 +1012,7 @@ Operations marked `async` MUST NOT block the response. The `queue` operation sch
 
 ### 10.7 Return Statement
 
-```apix
+```restx
 return -> user
 return -> 201:user
 return -> 404:{ message: "Not found" }
@@ -1022,7 +1022,7 @@ Every flow MUST terminate with a `return` statement that matches one of the decl
 
 ### 10.8 Transformations
 
-```apix
+```restx
 transform -> user {
   fullName: user.firstName + " " + user.lastName
   isActive: user.lastLoginAt > daysAgo(30)
@@ -1035,7 +1035,7 @@ transform -> user {
 
 ### 11.1 Authentication Types
 
-```apix
+```restx
 auth: bearer        # JWT Bearer token
 auth: basic         # HTTP Basic authentication
 auth: apikey        # API key in header (default)
@@ -1047,7 +1047,7 @@ auth: none          # Explicitly no authentication
 
 ### 11.2 Global Authentication
 
-```apix
+```restx
 api "API Name" v1.0.0
   auth: bearer
 ```
@@ -1058,7 +1058,7 @@ When specified at the API level, all routes inherit this authentication. Individ
 
 Authorization determines whether an authenticated user may access a specific endpoint.
 
-```apix
+```restx
 GET /admin/stats -> Stats
   auth: bearer
   authorize: $auth.role == "admin"
@@ -1070,7 +1070,7 @@ The `authorize` expression is evaluated BEFORE the flow executes. If authorizati
 
 When authorization depends on the resource being accessed, checks MUST be performed within the flow:
 
-```apix
+```restx
 GET /orders/:orderId -> Order
   auth: bearer
   flow: {
@@ -1120,7 +1120,7 @@ integration_option = identifier, ":", value ;
 
 An integration MUST specify at minimum a `baseUrl`. Authentication and other options are OPTIONAL.
 
-```apix
+```restx
 integration stripe {
   baseUrl: "https://api.stripe.com"
   auth: bearer($env.stripe.apiKey)
@@ -1149,7 +1149,7 @@ integration internal {
 
 ### 12.3 Authentication Options
 
-```apix
+```restx
 # Bearer token
 auth: bearer($env.token)
 
@@ -1191,7 +1191,7 @@ The type annotation (`-> Type`) specifies the expected response shape and enable
 
 #### Examples
 
-```apix
+```restx
 # Define types at document level
 type Charge {
   id!: str
@@ -1262,7 +1262,7 @@ DELETE /customers/:id -> 204|404
 
 Path parameters in integration calls use the same `{param}` syntax and are resolved from the flow scope:
 
-```apix
+```restx
 flow: {
   customerId -> "cus_123"
   customer -> $stripe.get("/v1/customers/{customerId}") -> Customer
@@ -1274,7 +1274,7 @@ flow: {
 
 Per-request headers can be specified as a third argument:
 
-```apix
+```restx
 flow: {
   result -> $api.post("/webhook", payload, {
     headers: {
@@ -1290,7 +1290,7 @@ flow: {
 
 ### 13.1 Environment Blocks
 
-```apix
+```restx
 env development {
   server: http://localhost:3000
   database.url: postgres://localhost/app_dev
@@ -1308,7 +1308,7 @@ env production {
 
 ### 13.2 Accessing Environment Values
 
-```apix
+```restx
 integration stripe {
   apiKey: $env.stripe.apiKey
 }
@@ -1325,7 +1325,7 @@ flow: {
 
 ### 14.1 Hook Definition
 
-```apix
+```restx
 hook requestLogger {
   before: {
     log -> $request.method + " " + $request.path
@@ -1351,7 +1351,7 @@ hook requestLogger {
 
 ### 14.3 Applying Hooks
 
-```apix
+```restx
 # Global hooks
 @use(requestLogger, cors)
 
@@ -1370,7 +1370,7 @@ GET /health -> { status: str }
 
 ### 15.1 Webhook Definition
 
-```apix
+```restx
 webhook order.completed {
   orderId!: uuid
   status!: str
@@ -1381,7 +1381,7 @@ webhook order.completed {
 
 ### 15.2 Triggering Webhooks
 
-```apix
+```restx
 flow: {
   order -> db.orders.update(id, { status: "completed" })
   trigger -> order.completed(order) to order.webhookUrl
@@ -1395,7 +1395,7 @@ flow: {
 
 ### 16.1 Task Definition
 
-```apix
+```restx
 task cleanupExpiredSessions {
   schedule: daily at 02:00
   flow: {
@@ -1420,7 +1420,7 @@ task cleanupExpiredSessions {
 
 ### 17.1 Global Error Schema
 
-```apix
+```restx
 error ApiError {
   message!: str
   code!: str
@@ -1434,7 +1434,7 @@ When an `error` schema is defined, all error responses MUST conform to this stru
 
 ### 17.2 Try-Catch Blocks
 
-```apix
+```restx
 try:
   charge -> $integration.stripe.charge(amount)
   order -> db.orders.create({ payment_id: charge.id })
@@ -1446,7 +1446,7 @@ catch db.error:
 
 ### 17.3 Error Responses in Flows
 
-```apix
+```restx
 if user == null:
   return -> 404:{ message: "User not found", code: "USER_NOT_FOUND" }
 ```
@@ -1457,7 +1457,7 @@ if user == null:
 
 ### 18.1 Caching
 
-```apix
+```restx
 @cache(5m, key: products:all)
 @cache(server: 30m, client: 1h, key: user:{id})
 ```
@@ -1471,34 +1471,34 @@ if user == null:
 
 ### 18.2 Cache Invalidation
 
-```apix
+```restx
 @invalidate(products:*, product:{id})
 POST /products/:id -> Product
 ```
 
 ### 18.3 Retry
 
-```apix
+```restx
 @retry(3, backoff: exponential)
 @retry(5, backoff: linear, delay: 1s)
 ```
 
 ### 18.4 Timeout
 
-```apix
+```restx
 @timeout(10s)
 ```
 
 ### 18.5 Deprecation
 
-```apix
+```restx
 @deprecated("Use POST /v2/users instead")
 POST /users -> 201:User
 ```
 
 ### 18.6 Rate Limiting
 
-```apix
+```restx
 ratelimit: 100/minute
 ratelimit: 1000/hour
 ```
@@ -1566,8 +1566,8 @@ The complete formal grammar is provided in [Appendix B](#appendix-b-grammar).
 
 ### 21.1 Compiler Requirements
 
-An APIx compiler MUST:
-1. Parse and validate APIx syntax
+An RESTx compiler MUST:
+1. Parse and validate RESTx syntax
 2. Perform type checking across all definitions
 3. Validate database schema references
 4. Verify flow logic and return types
@@ -1575,7 +1575,7 @@ An APIx compiler MUST:
 
 ### 21.2 Runtime Requirements
 
-An APIx runtime MUST:
+An RESTx runtime MUST:
 1. Implement all built-in functions
 2. Handle authentication and authorization
 3. Execute flows with proper transaction management
@@ -1593,7 +1593,7 @@ Implementations MUST:
 
 ### 21.4 Compilation Targets
 
-APIx MAY compile to:
+RESTx MAY compile to:
 - Backend code (Go, Node.js, Python, Java, Rust, etc.)
 - OpenAPI 3.x specifications
 - GraphQL schemas
@@ -1606,7 +1606,7 @@ APIx MAY compile to:
 
 ### 22.1 Complete Todo API
 
-```apix
+```restx
 api "Todo API" v1.0.0
 desc "Simple task management API"
 server https://api.todos.example.com
@@ -1729,7 +1729,7 @@ DELETE /todos/:id -> 204|404
 <h2 id="appendix-b-grammar">Appendix B: Complete Grammar (EBNF)</h2>
 
 ```ebnf
-(* APIx Grammar - Version 1.0.0 *)
+(* RESTx Grammar - Version 1.0.0 *)
 
 document = metadata, { definition } ;
 
@@ -1896,7 +1896,7 @@ char = ? any Unicode character ? ;
 
 <h2 id="appendix-c-openapi">Appendix C: OpenAPI Mapping</h2>
 
-This appendix demonstrates how APIx compiles to OpenAPI 3.1 specifications. APIx can be used in two modes:
+This appendix demonstrates how RESTx compiles to OpenAPI 3.1 specifications. RESTx can be used in two modes:
 
 1. **Documentation Mode**: Generate OpenAPI specs for API documentation (flows are optional)
 2. **Full Backend Mode**: Generate complete backend code with business logic (flows required)
@@ -1907,9 +1907,9 @@ When used for documentation only, the `flow:` block MAY be omitted from route de
 
 #### Documentation Mode (No Flows)
 
-When flows are omitted, APIx functions as a concise API specification language:
+When flows are omitted, RESTx functions as a concise API specification language:
 
-```apix
+```restx
 api "User API" v1.0.0
 desc "User management endpoints"
 server https://api.example.com
@@ -1936,9 +1936,9 @@ This compiles to a complete OpenAPI specification without requiring implementati
 
 #### Full Backend Mode (With Flows)
 
-When flows are included, APIx generates both API documentation AND backend implementation:
+When flows are included, RESTx generates both API documentation AND backend implementation:
 
-```apix
+```restx
 GET /users/:id -> User|404
   auth: bearer
   flow: {
@@ -1951,11 +1951,11 @@ GET /users/:id -> User|404
 
 ### C.2 Complete Mapping Example
 
-The following example demonstrates the verbosity reduction achieved by APIx.
+The following example demonstrates the verbosity reduction achieved by RESTx.
 
-#### APIx (23 lines)
+#### RESTx (23 lines)
 
-```apix
+```restx
 api "Task API" v1.0.0
 desc "Simple task management"
 server https://api.tasks.io
@@ -2129,7 +2129,7 @@ paths:
 
 #### Types to Schemas
 
-| APIx | OpenAPI |
+| RESTx | OpenAPI |
 |------|---------|
 | `str` | `type: string` |
 | `int` | `type: integer, format: int32` |
@@ -2147,7 +2147,7 @@ paths:
 
 #### Constraints to Validation
 
-| APIx | OpenAPI |
+| RESTx | OpenAPI |
 |------|---------|
 | `@min(n)` on `str` | `minLength: n` |
 | `@max(n)` on `str` | `maxLength: n` |
@@ -2159,7 +2159,7 @@ paths:
 
 #### Authentication Mapping
 
-| APIx | OpenAPI Security Scheme |
+| RESTx | OpenAPI Security Scheme |
 |------|------------------------|
 | `auth: bearer` | `type: http, scheme: bearer` |
 | `auth: basic` | `type: http, scheme: basic` |
@@ -2169,7 +2169,7 @@ paths:
 
 #### Response Codes
 
-| APIx | OpenAPI |
+| RESTx | OpenAPI |
 |------|---------|
 | `-> Type` | `200` response with schema |
 | `-> 201:Type` | `201` response with schema |
@@ -2179,7 +2179,7 @@ paths:
 
 ### C.4 Elements Not Mapped to OpenAPI
 
-The following APIx elements are used for backend generation only and have no OpenAPI equivalent:
+The following RESTx elements are used for backend generation only and have no OpenAPI equivalent:
 
 | Element | Purpose |
 |---------|---------|
@@ -2192,7 +2192,7 @@ The following APIx elements are used for backend generation only and have no Ope
 | `@cache`, `@retry` | Runtime behavior |
 | `authorize:` | Authorization logic (security schemes only in OpenAPI) |
 
-These elements MAY be omitted when using APIx purely for API documentation.
+These elements MAY be omitted when using RESTx purely for API documentation.
 
 ---
 

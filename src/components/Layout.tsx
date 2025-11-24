@@ -124,7 +124,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </svg>
               </button>
               <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)' }}>apix</span>
+                <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)' }}>restx</span>
                 <span style={{ color: 'var(--text-tertiary)' }}>spec</span>
               </a>
             </div>
@@ -153,7 +153,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 )}
               </button>
               <a
-                href="https://github.com/apix-org/spec"
+                href="https://github.com/restx-org/spec"
                 style={{ color: 'var(--text-tertiary)' }}
                 target="_blank"
                 rel="noopener noreferrer"

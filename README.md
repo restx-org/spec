@@ -1,10 +1,10 @@
-# APIx Language Specification
+# RESTx Language Specification
 
 A declarative domain-specific language (DSL) for backend API development.
 
 ## Overview
 
-APIx provides a concise, human-readable syntax for defining REST APIs that compiles to production-ready backend services, OpenAPI specifications, and database migrations.
+RESTx provides a concise, human-readable syntax for defining REST APIs that compiles to production-ready backend services, OpenAPI specifications, and database migrations.
 
 ## Development
 
@@ -34,7 +34,7 @@ npm run export
 ### Project Structure
 
 ```
-apix-spec/
+restx-spec/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx      # Root layout with navigation
@@ -53,7 +53,7 @@ apix-spec/
 
 1. Edit `src/app/page.mdx` for specification content
 2. Use RFC 2119 keywords (MUST, SHOULD, MAY) for requirements
-3. Add code examples in fenced code blocks with `apix` language tag
+3. Add code examples in fenced code blocks with `restx` language tag
 4. Run `npm run dev` to preview changes
 
 ### Custom Components
@@ -72,5 +72,5 @@ MIT
 
 ## Links
 
-- [Specification](https://apix-org.github.io/spec)
-- [GitHub](https://github.com/apix-org/spec)
+- [Specification](https://restx-org.github.io/spec)
+- [GitHub](https://github.com/restx-org/spec)

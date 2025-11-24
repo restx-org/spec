@@ -1,7 +1,7 @@
 {
-  "name": "apix-spec",
+  "name": "restx-spec",
   "version": "1.0.0",
-  "description": "APIx Language Specification",
+  "description": "RESTx Language Specification",
   "type": "module",
   "scripts": {
     "dev": "next dev",
